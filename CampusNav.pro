@@ -19,11 +19,13 @@ SOURCES += \
     main.cpp \
     mainwindow.cpp \
     map.cpp \
+    mygraphicsitem.cpp \
     mygraphicsview.cpp
 
 HEADERS += \
     mainwindow.h \
     map.h \
+    mygraphicsitem.h \
     mygraphicsview.h
 
 FORMS += \

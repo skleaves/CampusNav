@@ -3,6 +3,7 @@
 
 MyGraphicsView::MyGraphicsView(QWidget *parent) : QGraphicsView(parent)
 {
+    connect(this, &MyGraphicsView::read_MapData, this, &MyGraphicsView::on_readMapData);
 }
 
 void MyGraphicsView::wheelEvent(QWheelEvent *event)
@@ -38,12 +39,11 @@ void MyGraphicsView::wheelEvent(QWheelEvent *event)
         horizontalScrollBar()->setValue(int(viewPoint.x() - viewWidth * hScale));
         verticalScrollBar()->setValue(int(viewPoint.y() - viewHeight * vScale));
     }
-
     QGraphicsView::wheelEvent(event);
 }
 
 
-void MyGraphicsView::SetImage(QImage img)
+void MyGraphicsView::setImage(QImage img)
 {
     //把影像添加到画布
     QPixmap Images = QPixmap::fromImage(img);
@@ -83,9 +83,6 @@ void MyGraphicsView::moveBy(QPointF offset)
     this->horizontalScrollBar()->setValue(nposx);
     this->verticalScrollBar()->setValue(nposy);
     this->scene()->update();
-    //记录备用
-    m_posx = nposx;
-    m_posy = nposy;
 }
 
 void MyGraphicsView::setScale(qreal scale)
@@ -95,19 +92,144 @@ void MyGraphicsView::setScale(qreal scale)
     qDebug() << m_scalnum;
 }
 
+void MyGraphicsView::addPoint(Pos p)
+{
+    p.isBuild = true;
+    m_all_locs.push_back(p);
+    drawPoint(p);
+}
+
+void MyGraphicsView::addPathPoint(Pos p)
+{
+    p.isBuild = false;
+    m_all_locs.push_back(p);
+    drawPathPoint(p);
+}
+
+void MyGraphicsView::addLine(Pos a, Pos b)
+{
+    m_all_edges.push_back(Edge(a, b));
+    drawLine(a, b);
+}
+
+void MyGraphicsView::drawPoint(Pos p)
+{
+    MyGraphicsItem *pitem = new MyGraphicsItem(0, 0, 40, 40);
+    m_all_locs_list.append(pitem);
+    pitem->setZValue(3);
+    pitem->setPosition(p);
+    pitem->setOpacity(0.5);
+    pitem->setPos(p.x - 20, p.y - 20);
+    pitem->setPen(QPen(Qt::NoPen));
+    pitem->setBrush(QBrush(Qt::blue));
+    pitem->setAcceptHoverEvents(true);
+    this->scene()->addItem(pitem);
+}
+
+void MyGraphicsView::drawPathPoint(Pos p)
+{
+    MyGraphicsItem *pitem = new MyGraphicsItem(0, 0, 30, 30);
+    m_all_locs_list.append(pitem);
+    pitem->setZValue(3);
+    pitem->setPosition(p);
+    pitem->setOpacity(0.5);
+    pitem->setPos(p.x - 15, p.y - 15);
+    pitem->setPen(QPen(Qt::NoPen));
+    pitem->setBrush(QBrush(Qt::yellow));
+    this->scene()->addItem(pitem);
+}
+
+void MyGraphicsView::drawLine(Pos a, Pos b)
+{
+    int x1 = a.x, x2 = b.x, y1 = a.y, y2 = b.y;
+    QGraphicsLineItem *line = new QGraphicsLineItem(x1, y1, x2, y2);
+    m_all_edges_list.append(line);
+    line->setZValue(1);
+    QPen pen(Qt::blue);
+    pen.setWidth(10);
+    pen.setStyle(Qt::DashDotLine);
+    line->setPen(pen);
+    this->scene()->addItem(line);
+}
+
+void MyGraphicsView::clearPoint()
+{
+    m_all_locs.clear();
+    while (!m_all_locs_list.isEmpty())
+        delete m_all_locs_list.takeFirst();
+}
+
+void MyGraphicsView::clearLine()
+{
+    m_all_edges.clear();
+    while (!m_all_edges_list.isEmpty())
+        delete m_all_edges_list.takeFirst();
+}
+
 void MyGraphicsView::mousePressEvent(QMouseEvent *event)
 {
-    if (event->button() == Qt::RightButton)
+    if (event->button() == Qt::RightButton) //准备移动画布
     {
         this->setCursor(Qt::PointingHandCursor);
         m_startpos = mapToScene(event->pos());
-        //qDebug() << m_startpos;
     }
     else if (event->button() == Qt::MidButton) {    //恢复初始大小
         QMatrix mat;
         mat.setMatrix(m_scaldft, this->matrix().m12(), this->matrix().m21(), m_scaldft,this->matrix().dx(), this->matrix().dy());
         this->setMatrix(mat);
         m_scalnum = m_scaldft;
+    }
+    else if (event->button() == Qt::LeftButton){
+        QPointF p = this->mapToScene(event->pos());
+        Pos curP(p.x(), p.y());
+        //如果在添加目标点模式 则尝试添加新目标点
+        if (m_state == M_ADD_LOC) {
+            QGraphicsItem *item = NULL;
+            item = this->scene()->itemAt(p, this->transform());
+            if (item != NULL) {
+                //生成透明点 用于检查当前处是否已经有坐标点
+                MyGraphicsItem *pitem = new MyGraphicsItem(0, 0, 40, 40);
+                pitem->setZValue(3);
+                pitem->setOpacity(0);
+                pitem->setPos(p.x() - 20, p.y() - 20);
+                this->scene()->addItem(pitem);
+                if (pitem->collidingItems().size() > 1) {
+                    qDebug() << "too close!";
+                    delete pitem;
+                    return;
+                }
+            }
+            //否则添加并绘制新坐标点
+            addPoint(curP);
+        }
+
+        //若在准备添加路径模式 则尝试添加路径
+        else if (m_state == M_ADD_PATHBG) {
+            //首先需要点击在一个已有的点作为起点
+            QGraphicsItem *item = NULL;
+            item = this->scene()->itemAt(p, this->transform());
+            if (static_cast<MyGraphicsItem*>(item)->type() != MyGraphicsItem::MyItem)
+                emit printLog("请单击起点\n");
+            else {
+                m_state = M_ADD_PATH;
+                m_plast = static_cast<MyGraphicsItem*>(item)->getPosition();
+                emit printLog("起点设置成功\n");
+            }
+        }
+        //正式添加路径点
+        else if (m_state == M_ADD_PATH) {
+            QGraphicsItem *item = NULL;
+            item = this->scene()->itemAt(p, this->transform());
+            if (static_cast<MyGraphicsItem*>(item)->type() == MyGraphicsItem::MyItem) {
+                addLine(m_plast, static_cast<MyGraphicsItem*>(item)->getPosition());
+                emit printLog("路径添加成功\n");
+                m_state = M_ADD_PATHBG;
+                return;
+            }
+            addPathPoint(curP);
+            addLine(m_plast, curP);
+            m_plast = curP;
+        }
     }
 
     QGraphicsView::mousePressEvent(event);
@@ -143,5 +265,72 @@ void MyGraphicsView::mouseMoveEvent(QMouseEvent *event)
         QPointF itemPoint = item->mapFromScene(scenePoint);
         mapCoord->setText(QString::asprintf("item: %.0f, %.0f", itemPoint.x(), itemPoint.y()));
     }
+
     QGraphicsView::mouseMoveEvent(event);
+}
+
+void MyGraphicsView::on_readMapData()
+{
+    for (auto p : m_all_locs) {
+        if (p.isBuild == true) drawPoint(p);
+        else drawPathPoint(p);
+    }
+    for (auto e : m_all_edges) {
+        drawLine(e.start_pos, e.end_pos);
+    }
+}
+
+void MyGraphicsView::on_radioBtn_Default_clicked(bool checked)
+{
+    if (checked == true) this->m_state = M_DEFAULT;
+    //qDebug() << m_state;
+}
+
+void MyGraphicsView::on_radioBtn_AddLoc_clicked(bool checked)
+{
+    if (checked == true) this->m_state = M_ADD_LOC;
+    //qDebug() << m_state;
+}
+
+void MyGraphicsView::on_radioBtn_AddPath_clicked(bool checked)
+{
+    if (checked == true) this->m_state = M_ADD_PATHBG;
+    //qDebug() << m_state;
+}
+
+void MyGraphicsView::on_pushBtn_Save_pressed()
+{
+    QFile file("map.dat");
+    if(!file.open(QIODevice::WriteOnly))
+    {
+         return;
+    }
+    QDataStream out(&file);
+    out.setVersion(QDataStream::Qt_4_3);
+    out << m_all_locs;
+    out << m_all_edges;
+    qDebug() << file.flush();
+}
+
+void MyGraphicsView::on_pushBtn_Load_pressed()
+{
+    //先清空当前的
+    clearPoint();
+    clearLine();
+    QFile file("map.dat");
+    if(!file.open(QIODevice::ReadOnly))
+    {
+        return;
+    }
+    QDataStream in(&file);
+    in.setVersion(QDataStream::Qt_4_3);
+    in >> m_all_locs;
+    in >> m_all_edges;
+    emit read_MapData();
+}
+
+void MyGraphicsView::on_pushBtn_Clear_pressed()
+{
+    clearPoint();
+    clearLine();
 }

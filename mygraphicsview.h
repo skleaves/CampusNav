@@ -5,50 +5,75 @@
 #include <QKeyEvent>
 #include <QGraphicsScene>
 #include <QGraphicsPixmapItem>
+#include <QGraphicsLineItem>
 #include <QMouseEvent>
 #include <QScrollBar>
 #include <QPen>
 #include <QLabel>
 #include <vector>
 #include <QMatrix>
+#include <QLinkedList>
 #include "map.h"
+#include "mygraphicsitem.h"
 
 class MyGraphicsView : public QGraphicsView
 {
+    Q_OBJECT
 public:
     MyGraphicsView(QWidget *parent);
-    void SetImage(QImage img);
+    void setImage(QImage img);
     void moveBy(QPointF offset);
     void setScale(qreal scale);
+    void addPoint(Pos p);
+    void addPathPoint(Pos p);
+    void addLine(Pos a, Pos b);
+    void drawPoint(Pos p);
+    void drawPathPoint(Pos p);
+    void drawLine(Pos a, Pos b);
+
+    void clearPoint();
+    void clearLine();
 
 private:
-    QGraphicsPixmapItem* m_map;
-    QGraphicsEllipseItem* Item;
-//    qreal m_scaldft = 1;
-    QPointF m_startpos; //鼠标开始点
-    QPointF m_endpos; //鼠标结束点
-    qreal m_scalnum = 1; //缩放系数
-    qreal m_scaldft = 0.170438;
-    double m_posx; //视图移动参数x
-    double m_posy; //试图移动参数y
-    int m_flag; //是否进行选点
-    std::vector<QPointF> m_points; //选择的点
-    std::vector<std::vector<QPointF>> m_allpoints; //选择的所有点
-    double  x1 = 0, x2 = 900, y1 = 0, y2 = 606;
+    enum {
+        M_DEFAULT,    //默认 浏览模式
+        M_ADD_LOC,    //添加目的点
+        M_ADD_PATHBG, //准备添加路径
+        M_ADD_PATH
+    };
+    int m_state = M_DEFAULT;    //状态标记
+    QPointF m_startpos;         //鼠标开始点 同下用于移动视图
+    QPointF m_endpos;           //鼠标结束点
+    Pos m_plast;
+    qreal m_scalnum = 1;        //缩放系数
+    qreal m_scaldft = 0.170438; //默认缩放系数
+
+    QVector<Pos> m_all_locs;    //记录所有路径点
+    QVector<Edge> m_all_edges;
+    QLinkedList<MyGraphicsItem *> m_all_locs_list;  //所有路径点图元的链表 用于删除
+    QLinkedList<QGraphicsLineItem *> m_all_edges_list;   //所有边图元的链表 用于删除
+
 private:
     void wheelEvent(QWheelEvent *event) Q_DECL_OVERRIDE;
     void mousePressEvent(QMouseEvent *event) Q_DECL_OVERRIDE;
     void mouseReleaseEvent(QMouseEvent *event) Q_DECL_OVERRIDE;
     void mouseMoveEvent(QMouseEvent *event) Q_DECL_OVERRIDE;
 public:
-    Map mapMap;
-    QPointF scencePos;
-    QPen pen;   // 定义一个画笔，设置画笔颜色和宽度
-    Pos Start;
-    Pos End;
-    Pos nowPos;
-
+    Map myMap;
     QLabel  *sceneCoord,*viewCoord,*mapCoord;
+
+signals:
+    void read_MapData();
+    void printLog(QString str);
+
+public slots:
+    void on_readMapData();
+    void on_radioBtn_Default_clicked(bool checked);
+    void on_radioBtn_AddLoc_clicked(bool checked);
+    void on_radioBtn_AddPath_clicked(bool checked);
+    void on_pushBtn_Save_pressed();
+    void on_pushBtn_Load_pressed();
+    void on_pushBtn_Clear_pressed();
 };
 
 #endif // MYGRAPHICSVIEW_H
