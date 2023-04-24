@@ -24,12 +24,12 @@ public:
     void setImage(QImage img);
     void moveBy(QPointF offset);
     void setScale(qreal scale);
-    void addPoint(Pos p);
-    void addPathPoint(Pos p);
-    void addLine(Pos a, Pos b);
-    void drawPoint(Pos p);
-    void drawPathPoint(Pos p);
-    void drawLine(Pos a, Pos b);
+    Pos * addPoint(QPointF p);
+    Pos * addPathPoint(QPointF p);
+    void addLine(int pid1, int pid2); //应该传入两个id
+    void drawPoint(Pos *p);
+    void drawPathPoint(Pos *p);
+    void drawLine(Edge *e);
 
     void clearPoint();
     void clearLine();
@@ -42,15 +42,18 @@ private:
         M_ADD_PATH
     };
     int m_state = M_DEFAULT;    //状态标记
+
     QPointF m_startpos;         //鼠标开始点 同下用于移动视图
     QPointF m_endpos;           //鼠标结束点
-    Pos m_plast;
+    Pos *m_plast;
     qreal m_scalnum = 1;        //缩放系数
     qreal m_scaldft = 0.170438; //默认缩放系数
 
-    QVector<Pos> m_all_locs;    //记录所有路径点
-    QVector<Edge> m_all_edges;
-    QLinkedList<MyGraphicsItem *> m_all_locs_list;  //所有路径点图元的链表 用于删除
+    QVector<Pos *> m_all_locs;    //记录所有路径点
+    QVector<Edge *> m_all_edges;
+
+
+    QLinkedList<MyGraphicsItem *> m_all_locs_list;       //所有路径点图元的链表 用于删除
     QLinkedList<QGraphicsLineItem *> m_all_edges_list;   //所有边图元的链表 用于删除
 
 private:

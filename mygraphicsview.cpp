@@ -8,16 +8,16 @@ MyGraphicsView::MyGraphicsView(QWidget *parent) : QGraphicsView(parent)
 
 void MyGraphicsView::wheelEvent(QWheelEvent *event)
 {
-    // 获取当前鼠标相对于view的位置;
+    // 获取当前鼠标相对于view的位置
     QPointF cursorPoint = event->pos();
-    // 获取当前鼠标相对于scene的位置;
+    // 获取当前鼠标相对于scene的位置
     QPointF scenePos = this->mapToScene(QPoint(cursorPoint.x(), cursorPoint.y()));
 
-    // 获取view的宽高;
+    // 获取view的宽高
     qreal viewWidth = this->viewport()->width();
     qreal viewHeight = this->viewport()->height();
 
-    // 获取当前鼠标位置相当于view大小的横纵比例;
+    // 获取当前鼠标位置相当于view大小的横纵比
     qreal hScale = cursorPoint.x() / viewWidth;
     qreal vScale = cursorPoint.y() / viewHeight;
 
@@ -33,9 +33,9 @@ void MyGraphicsView::wheelEvent(QWheelEvent *event)
         if (event->delta() > 0) setScale(1.1);
         else setScale(0.9);
 
-        // 将scene坐标转换为放大缩小后的坐标;
+        // 将scene坐标转换为放大缩小后的坐标
         QPointF viewPoint = this->matrix().map(scenePos);
-        // 通过滚动条控制view放大缩小后的展示scene的位置;
+        // 通过滚动条控制view放大缩小后的展示scene的位置
         horizontalScrollBar()->setValue(int(viewPoint.x() - viewWidth * hScale));
         verticalScrollBar()->setValue(int(viewPoint.y() - viewHeight * vScale));
     }
@@ -52,7 +52,7 @@ void MyGraphicsView::setImage(QImage img)
     map->setFlag(QGraphicsPixmapItem::ItemIsSelectable, true);
     map->setFlag(QGraphicsPixmapItem::ItemIsMovable, false);
     map->setFlag(QGraphicsPixmapItem::ItemSendsGeometryChanges,true);
-    QGraphicsScene *scene = new QGraphicsScene(); //场景 = new QGraphicsScene();
+    QGraphicsScene *scene = new QGraphicsScene();
     //画布添加至场景
     scene->addItem(map);
     //场景绑定到控件
@@ -92,56 +92,63 @@ void MyGraphicsView::setScale(qreal scale)
     qDebug() << m_scalnum;
 }
 
-void MyGraphicsView::addPoint(Pos p)
+Pos * MyGraphicsView::addPoint(QPointF p)
 {
-    p.isBuild = true;
-    m_all_locs.push_back(p);
-    drawPoint(p);
+    Pos *pos = new Pos(p.x(), p.y(), true);
+    m_all_locs.push_back(pos);
+    qDebug() << pos->id;
+    drawPoint(pos);
+    return pos;
 }
 
-void MyGraphicsView::addPathPoint(Pos p)
+Pos * MyGraphicsView::addPathPoint(QPointF p)
 {
-    p.isBuild = false;
-    m_all_locs.push_back(p);
-    drawPathPoint(p);
+    Pos *pos = new Pos(p.x(), p.y(), false);
+    m_all_locs.push_back(pos);
+    drawPathPoint(pos);
+    return pos;
 }
 
-void MyGraphicsView::addLine(Pos a, Pos b)
+void MyGraphicsView::addLine(int pid1, int pid2)
 {
-    m_all_edges.push_back(Edge(a, b));
-    drawLine(a, b);
+    double len = Edge::dist(m_all_locs[pid1]->x, m_all_locs[pid1]->y,
+                            m_all_locs[pid2]->x, m_all_locs[pid2]->y);
+    Edge *edge = new Edge(pid1, pid2, len);
+    m_all_edges.push_back(edge);
+    drawLine(edge);
 }
 
-void MyGraphicsView::drawPoint(Pos p)
+void MyGraphicsView::drawPoint(Pos *p)
 {
     MyGraphicsItem *pitem = new MyGraphicsItem(0, 0, 40, 40);
     m_all_locs_list.append(pitem);
     pitem->setZValue(3);
     pitem->setPosition(p);
     pitem->setOpacity(0.5);
-    pitem->setPos(p.x - 20, p.y - 20);
+    pitem->setPos(p->x - 20, p->y - 20);
     pitem->setPen(QPen(Qt::NoPen));
     pitem->setBrush(QBrush(Qt::blue));
     pitem->setAcceptHoverEvents(true);
     this->scene()->addItem(pitem);
 }
 
-void MyGraphicsView::drawPathPoint(Pos p)
+void MyGraphicsView::drawPathPoint(Pos *p)
 {
     MyGraphicsItem *pitem = new MyGraphicsItem(0, 0, 30, 30);
     m_all_locs_list.append(pitem);
     pitem->setZValue(3);
     pitem->setPosition(p);
     pitem->setOpacity(0.5);
-    pitem->setPos(p.x - 15, p.y - 15);
+    pitem->setPos(p->x - 15, p->y - 15);
     pitem->setPen(QPen(Qt::NoPen));
     pitem->setBrush(QBrush(Qt::yellow));
     this->scene()->addItem(pitem);
 }
 
-void MyGraphicsView::drawLine(Pos a, Pos b)
+void MyGraphicsView::drawLine(Edge *e)
 {
-    int x1 = a.x, x2 = b.x, y1 = a.y, y2 = b.y;
+    int x1 = m_all_locs[e->start_pos]->x, x2 = m_all_locs[e->end_pos]->x;
+    int y1 = m_all_locs[e->start_pos]->y, y2 = m_all_locs[e->end_pos]->y;
     QGraphicsLineItem *line = new QGraphicsLineItem(x1, y1, x2, y2);
     m_all_edges_list.append(line);
     line->setZValue(1);
@@ -154,6 +161,7 @@ void MyGraphicsView::drawLine(Pos a, Pos b)
 
 void MyGraphicsView::clearPoint()
 {
+    Pos::cnt = 0;
     m_all_locs.clear();
     while (!m_all_locs_list.isEmpty())
         delete m_all_locs_list.takeFirst();
@@ -181,7 +189,6 @@ void MyGraphicsView::mousePressEvent(QMouseEvent *event)
     }
     else if (event->button() == Qt::LeftButton){
         QPointF p = this->mapToScene(event->pos());
-        Pos curP(p.x(), p.y());
         //如果在添加目标点模式 则尝试添加新目标点
         if (m_state == M_ADD_LOC) {
             QGraphicsItem *item = NULL;
@@ -200,7 +207,7 @@ void MyGraphicsView::mousePressEvent(QMouseEvent *event)
                 }
             }
             //否则添加并绘制新坐标点
-            addPoint(curP);
+            addPoint(p);
         }
 
         //若在准备添加路径模式 则尝试添加路径
@@ -209,11 +216,11 @@ void MyGraphicsView::mousePressEvent(QMouseEvent *event)
             QGraphicsItem *item = NULL;
             item = this->scene()->itemAt(p, this->transform());
             if (static_cast<MyGraphicsItem*>(item)->type() != MyGraphicsItem::MyItem)
-                emit printLog("请单击起点\n");
+                emit printLog("请单击起点");
             else {
                 m_state = M_ADD_PATH;
                 m_plast = static_cast<MyGraphicsItem*>(item)->getPosition();
-                emit printLog("起点设置成功\n");
+                emit printLog("起点设置成功");
             }
         }
         //正式添加路径点
@@ -221,14 +228,14 @@ void MyGraphicsView::mousePressEvent(QMouseEvent *event)
             QGraphicsItem *item = NULL;
             item = this->scene()->itemAt(p, this->transform());
             if (static_cast<MyGraphicsItem*>(item)->type() == MyGraphicsItem::MyItem) {
-                addLine(m_plast, static_cast<MyGraphicsItem*>(item)->getPosition());
-                emit printLog("路径添加成功\n");
+                addLine(m_plast->id, static_cast<MyGraphicsItem*>(item)->getPosition()->id);
+                emit printLog("路径添加成功");
                 m_state = M_ADD_PATHBG;
                 return;
             }
-            addPathPoint(curP);
-            addLine(m_plast, curP);
-            m_plast = curP;
+            Pos * newp = addPathPoint(p);
+            addLine(m_plast->id, newp->id);
+            m_plast = newp;
         }
     }
 
@@ -265,37 +272,37 @@ void MyGraphicsView::mouseMoveEvent(QMouseEvent *event)
         QPointF itemPoint = item->mapFromScene(scenePoint);
         mapCoord->setText(QString::asprintf("item: %.0f, %.0f", itemPoint.x(), itemPoint.y()));
     }
+    //qDebug() << this->scene()->mouseGrabberItem();
 
     QGraphicsView::mouseMoveEvent(event);
 }
 
 void MyGraphicsView::on_readMapData()
 {
+    qDebug() << m_all_locs.isEmpty();
+    qDebug() << m_all_edges.isEmpty();
     for (auto p : m_all_locs) {
-        if (p.isBuild == true) drawPoint(p);
+        if (p->isBuild == true) drawPoint(p);
         else drawPathPoint(p);
     }
     for (auto e : m_all_edges) {
-        drawLine(e.start_pos, e.end_pos);
+        drawLine(e);
     }
 }
 
 void MyGraphicsView::on_radioBtn_Default_clicked(bool checked)
 {
     if (checked == true) this->m_state = M_DEFAULT;
-    //qDebug() << m_state;
 }
 
 void MyGraphicsView::on_radioBtn_AddLoc_clicked(bool checked)
 {
     if (checked == true) this->m_state = M_ADD_LOC;
-    //qDebug() << m_state;
 }
 
 void MyGraphicsView::on_radioBtn_AddPath_clicked(bool checked)
 {
     if (checked == true) this->m_state = M_ADD_PATHBG;
-    //qDebug() << m_state;
 }
 
 void MyGraphicsView::on_pushBtn_Save_pressed()
@@ -307,9 +314,16 @@ void MyGraphicsView::on_pushBtn_Save_pressed()
     }
     QDataStream out(&file);
     out.setVersion(QDataStream::Qt_4_3);
-    out << m_all_locs;
-    out << m_all_edges;
-    qDebug() << file.flush();
+
+    out << m_all_locs.size();
+    out << m_all_edges.size();
+    for (auto p : m_all_locs) {
+        out << *p;
+    }
+    for (auto e : m_all_edges) {
+        out << *e;
+    }
+    qDebug() << file.flush() << m_all_locs.size() << m_all_edges.size();
 }
 
 void MyGraphicsView::on_pushBtn_Load_pressed()
@@ -324,8 +338,20 @@ void MyGraphicsView::on_pushBtn_Load_pressed()
     }
     QDataStream in(&file);
     in.setVersion(QDataStream::Qt_4_3);
-    in >> m_all_locs;
-    in >> m_all_edges;
+
+    int loc_size, edge_size;
+    in >> loc_size >> edge_size;
+
+    for (int i = 0; i < loc_size; i ++) {
+        Pos *p = new Pos();
+        in >> *p;
+        m_all_locs.push_back(p);
+    }
+    for (int i = 0; i < edge_size; i ++) {
+        Edge *e = new Edge();
+        in >> *e;
+        m_all_edges.push_back(e);
+    }
     emit read_MapData();
 }
 

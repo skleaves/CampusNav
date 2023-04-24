@@ -10,21 +10,23 @@ MyGraphicsItem::MyGraphicsItem(qreal x, qreal y, qreal width, qreal height, QGra
 {
 }
 
-void MyGraphicsItem::setPosition(Pos pos)
+void MyGraphicsItem::setPosition(Pos *pos)
 {
     this->m_position = pos;
 }
 
-Pos MyGraphicsItem::getPosition()
+Pos * MyGraphicsItem::getPosition()
 {
     return this->m_position;
 }
 
-void MyGraphicsItem::hoverMoveEvent(QGraphicsSceneHoverEvent *event)
+void MyGraphicsItem::hoverEnterEvent(QGraphicsSceneHoverEvent *event)
 {
     this->setOpacity(1);
-    QGraphicsEllipseItem::hoverMoveEvent(event);
+    qDebug() << this->getPosition()->id;
+    QGraphicsEllipseItem::hoverEnterEvent(event);
 }
+
 
 void MyGraphicsItem::hoverLeaveEvent(QGraphicsSceneHoverEvent *event)
 {

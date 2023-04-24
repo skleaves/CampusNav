@@ -9,7 +9,7 @@
 class MyGraphicsItem : public QGraphicsEllipseItem
 {
 private:
-    Pos m_position;
+    Pos *m_position;
 
 public:
     MyGraphicsItem();
@@ -22,10 +22,11 @@ public:
         return MyItem;
      }
 
-     void setPosition(Pos pos);
-     Pos getPosition();
+     void setPosition(Pos *pos);
+     Pos * getPosition();
 
-     void hoverMoveEvent(QGraphicsSceneHoverEvent * event) Q_DECL_OVERRIDE;
+     void hoverEnterEvent(QGraphicsSceneHoverEvent * event) Q_DECL_OVERRIDE;
+     //void hoverMoveEvent(QGraphicsSceneHoverEvent * event) Q_DECL_OVERRIDE;
      void hoverLeaveEvent(QGraphicsSceneHoverEvent * event) Q_DECL_OVERRIDE;
 };
 

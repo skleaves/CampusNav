@@ -44,5 +44,5 @@ MainWindow::~MainWindow()
 
 void MainWindow::onPrintLog(QString str)
 {
-    this->ui->textLog->insertPlainText(str);
+    this->ui->textLog->append(str);
 }
