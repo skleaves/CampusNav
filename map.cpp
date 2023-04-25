@@ -8,6 +8,7 @@ Map::Map()
 }
 
 
+
 double Edge::dist(int x1, int y1, int x2, int y2)
 {
     int dx = x1 - x2, dy = y1 - y2;

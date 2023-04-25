@@ -65,18 +65,20 @@ public:
     Map myMap;
     QLabel  *sceneCoord,*viewCoord,*mapCoord;
 
+//信号
 signals:
     void read_MapData();
     void printLog(QString str);
+    void getUserInput(bool &isOK, QString &str);
 
 public slots:
     void on_readMapData();
-    void on_radioBtn_Default_clicked(bool checked);
-    void on_radioBtn_AddLoc_clicked(bool checked);
-    void on_radioBtn_AddPath_clicked(bool checked);
-    void on_pushBtn_Save_pressed();
-    void on_pushBtn_Load_pressed();
-    void on_pushBtn_Clear_pressed();
+    void onActionNormal(bool checked);
+    void onActionAddPos(bool checked);
+    void onActionAddPath(bool checked);
+    void onActionSave();
+    void onActionLoad();
+    void onActionClear();
 };
 
 #endif // MYGRAPHICSVIEW_H

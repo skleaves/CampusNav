@@ -12,11 +12,9 @@ void MyGraphicsView::wheelEvent(QWheelEvent *event)
     QPointF cursorPoint = event->pos();
     // 获取当前鼠标相对于scene的位置
     QPointF scenePos = this->mapToScene(QPoint(cursorPoint.x(), cursorPoint.y()));
-
     // 获取view的宽高
     qreal viewWidth = this->viewport()->width();
     qreal viewHeight = this->viewport()->height();
-
     // 获取当前鼠标位置相当于view大小的横纵比
     qreal hScale = cursorPoint.x() / viewWidth;
     qreal vScale = cursorPoint.y() / viewHeight;
@@ -94,10 +92,18 @@ void MyGraphicsView::setScale(qreal scale)
 
 Pos * MyGraphicsView::addPoint(QPointF p)
 {
+    //需要弹出输入窗口获取地点名
+    //if (!isOK) return NULL;
     Pos *pos = new Pos(p.x(), p.y(), true);
     m_all_locs.push_back(pos);
     qDebug() << pos->id;
     drawPoint(pos);
+
+    bool isOK;
+    QString name;
+    emit getUserInput(isOK, name);
+    pos->name = name;
+
     return pos;
 }
 
@@ -105,6 +111,7 @@ Pos * MyGraphicsView::addPathPoint(QPointF p)
 {
     Pos *pos = new Pos(p.x(), p.y(), false);
     m_all_locs.push_back(pos);
+    qDebug() << pos->id;
     drawPathPoint(pos);
     return pos;
 }
@@ -121,7 +128,6 @@ void MyGraphicsView::addLine(int pid1, int pid2)
 void MyGraphicsView::drawPoint(Pos *p)
 {
     MyGraphicsItem *pitem = new MyGraphicsItem(0, 0, 40, 40);
-    m_all_locs_list.append(pitem);
     pitem->setZValue(3);
     pitem->setPosition(p);
     pitem->setOpacity(0.5);
@@ -129,6 +135,10 @@ void MyGraphicsView::drawPoint(Pos *p)
     pitem->setPen(QPen(Qt::NoPen));
     pitem->setBrush(QBrush(Qt::blue));
     pitem->setAcceptHoverEvents(true);
+    pitem->setAcceptedMouseButtons(Qt::LeftButton);
+    pitem->setFlag(MyGraphicsItem::ItemIsSelectable, true);
+    pitem->setFlag(MyGraphicsItem::ItemIsMovable, true);
+    m_all_locs_list.append(pitem);
     this->scene()->addItem(pitem);
 }
 
@@ -178,6 +188,10 @@ void MyGraphicsView::mousePressEvent(QMouseEvent *event)
 {
     if (event->button() == Qt::RightButton) //准备移动画布
     {
+//        if (m_state == M_ADD_PATH) {
+//            m_state = M_DEFAULT;
+//            return;
+//        }
         this->setCursor(Qt::PointingHandCursor);
         m_startpos = mapToScene(event->pos());
     }
@@ -215,27 +229,31 @@ void MyGraphicsView::mousePressEvent(QMouseEvent *event)
             //首先需要点击在一个已有的点作为起点
             QGraphicsItem *item = NULL;
             item = this->scene()->itemAt(p, this->transform());
-            if (static_cast<MyGraphicsItem*>(item)->type() != MyGraphicsItem::MyItem)
-                emit printLog("请单击起点");
-            else {
-                m_state = M_ADD_PATH;
-                m_plast = static_cast<MyGraphicsItem*>(item)->getPosition();
-                emit printLog("起点设置成功");
+            if (item != NULL) {
+                if (static_cast<MyGraphicsItem*>(item)->type() != MyGraphicsItem::MyItem)
+                    emit printLog("请单击起点");
+                else {
+                    m_state = M_ADD_PATH;
+                    m_plast = static_cast<MyGraphicsItem*>(item)->getPosition();
+                    emit printLog("起点设置成功");
+                }
             }
         }
         //正式添加路径点
         else if (m_state == M_ADD_PATH) {
-            QGraphicsItem *item = NULL;
-            item = this->scene()->itemAt(p, this->transform());
-            if (static_cast<MyGraphicsItem*>(item)->type() == MyGraphicsItem::MyItem) {
-                addLine(m_plast->id, static_cast<MyGraphicsItem*>(item)->getPosition()->id);
-                emit printLog("路径添加成功");
-                m_state = M_ADD_PATHBG;
-                return;
+            MyGraphicsItem *item = static_cast<MyGraphicsItem*>(this->scene()->itemAt(p, this->transform()));
+            if (item != NULL) {
+                if (item->type() == MyGraphicsItem::MyItem) {
+                    addLine(m_plast->id, item->getPosition()->id);
+                    emit printLog("路径添加成功");
+                    m_plast = item->getPosition();
+                    //m_state = M_ADD_PATHBG;
+                    return;
+                }
+                Pos * newp = addPathPoint(p);
+                addLine(m_plast->id, newp->id);
+                m_plast = newp;
             }
-            Pos * newp = addPathPoint(p);
-            addLine(m_plast->id, newp->id);
-            m_plast = newp;
         }
     }
 
@@ -260,6 +278,7 @@ void MyGraphicsView::mouseReleaseEvent(QMouseEvent *event)
 
 void MyGraphicsView::mouseMoveEvent(QMouseEvent *event)
 {
+    //qDebug() << "[View]: mouse move";
     QPoint viewPoint = event->pos();
     viewCoord->setText(QString::asprintf("view: %d, %d", viewPoint.x(), viewPoint.y()));
     //场景坐标
@@ -272,7 +291,6 @@ void MyGraphicsView::mouseMoveEvent(QMouseEvent *event)
         QPointF itemPoint = item->mapFromScene(scenePoint);
         mapCoord->setText(QString::asprintf("item: %.0f, %.0f", itemPoint.x(), itemPoint.y()));
     }
-    //qDebug() << this->scene()->mouseGrabberItem();
 
     QGraphicsView::mouseMoveEvent(event);
 }
@@ -290,22 +308,26 @@ void MyGraphicsView::on_readMapData()
     }
 }
 
-void MyGraphicsView::on_radioBtn_Default_clicked(bool checked)
+void MyGraphicsView::onActionNormal(bool checked)
 {
     if (checked == true) this->m_state = M_DEFAULT;
+    this->setCursor(Qt::ArrowCursor);
 }
 
-void MyGraphicsView::on_radioBtn_AddLoc_clicked(bool checked)
+void MyGraphicsView::onActionAddPos(bool checked)
 {
     if (checked == true) this->m_state = M_ADD_LOC;
+    this->setCursor(Qt::CrossCursor);
+    //新建匿名图元 用于预览添加位置
 }
 
-void MyGraphicsView::on_radioBtn_AddPath_clicked(bool checked)
+void MyGraphicsView::onActionAddPath(bool checked)
 {
     if (checked == true) this->m_state = M_ADD_PATHBG;
+    this->setCursor(Qt::PointingHandCursor);
 }
 
-void MyGraphicsView::on_pushBtn_Save_pressed()
+void MyGraphicsView::onActionSave()
 {
     QFile file("map.dat");
     if(!file.open(QIODevice::WriteOnly))
@@ -326,7 +348,7 @@ void MyGraphicsView::on_pushBtn_Save_pressed()
     qDebug() << file.flush() << m_all_locs.size() << m_all_edges.size();
 }
 
-void MyGraphicsView::on_pushBtn_Load_pressed()
+void MyGraphicsView::onActionLoad()
 {
     //先清空当前的
     clearPoint();
@@ -355,7 +377,7 @@ void MyGraphicsView::on_pushBtn_Load_pressed()
     emit read_MapData();
 }
 
-void MyGraphicsView::on_pushBtn_Clear_pressed()
+void MyGraphicsView::onActionClear()
 {
     clearPoint();
     clearLine();

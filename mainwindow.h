@@ -3,6 +3,9 @@
 
 #include <QMainWindow>
 #include <QPushButton>
+#include <QInputDialog>
+#include <QLayout>
+#include <QAction>
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -21,5 +24,6 @@ private:
 
 public slots:
     void onPrintLog(QString str);
+    void onGetUserInput(bool &isOK, QString &str);
 };
 #endif // MAINWINDOW_H

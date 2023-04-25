@@ -20,10 +20,32 @@ Pos * MyGraphicsItem::getPosition()
     return this->m_position;
 }
 
+void MyGraphicsItem::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
+{
+    //qDebug() << "[Item]: move";
+    QGraphicsEllipseItem::mouseMoveEvent(event);
+}
+
+void MyGraphicsItem::mousePressEvent(QGraphicsSceneMouseEvent *event)
+{
+    QGraphicsEllipseItem::mousePressEvent(event);
+}
+
+void MyGraphicsItem::mouseReleaseEvent(QGraphicsSceneMouseEvent *event)
+{
+    //qDebug() << "[Item]: release";
+    QPointF newp = event->scenePos();
+    Pos *p = this->getPosition();
+    p->x = newp.x();
+    p->y = newp.y();
+    QGraphicsEllipseItem::mouseReleaseEvent(event);
+}
+
 void MyGraphicsItem::hoverEnterEvent(QGraphicsSceneHoverEvent *event)
 {
     this->setOpacity(1);
-    qDebug() << this->getPosition()->id;
+    Pos *p = this->getPosition();
+    qDebug() << p->id << p->name << p->x << p->y;
     QGraphicsEllipseItem::hoverEnterEvent(event);
 }
 

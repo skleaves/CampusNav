@@ -10,10 +10,10 @@
 
 struct Pos
 {
-    int x;
-    int y;
-    int id;
+    int x, y, id;
     bool isBuild;
+    QString name; //地点名
+
     static int cnt;
     Pos(int x = 0, int y = 0, bool isBuild = false) {
         this->x = x;
@@ -21,6 +21,8 @@ struct Pos
         this->id = cnt ++;
         this->isBuild = isBuild;
     }
+
+    //重载操作符
     void operator=(const Pos &a) {
         x = a.x;
         y = a.y;
@@ -33,11 +35,11 @@ struct Pos
         return false;
     }
     friend QDataStream &operator<<(QDataStream &out, const Pos &p) {
-        out << p.x << p.y << p.id << p.isBuild;
+        out << p.x << p.y << p.id << p.isBuild << p.name;
         return out;
     }
     friend QDataStream &operator>>(QDataStream &in, Pos &p) {
-        in >> p.x >> p.y >> p.id >> p.isBuild;
+        in >> p.x >> p.y >> p.id >> p.isBuild >> p.name;
         return in;
     }
 };
@@ -53,21 +55,17 @@ public:
         end_pos = b;
         this->len = len;
     }
-    void operator=(Edge& a){
-        start_pos=a.start_pos;
-        end_pos=a.end_pos;
-        len=a.len;
-    }
-    void operator=(const Edge& a){
-        start_pos=a.start_pos;
-        end_pos=a.end_pos;
-        len=a.len;
+    //重载操作符
+    void operator=(const Edge &a){
+        start_pos = a.start_pos;
+        end_pos = a.end_pos;
+        len = a.len;
     }
     bool operator==(const Edge &a){
-        return (start_pos==a.start_pos && end_pos==a.end_pos);
+        return (start_pos == a.start_pos && end_pos == a.end_pos);
     }
     bool operator!=(const Edge &a){
-        return (start_pos!=a.start_pos || end_pos!=a.end_pos);
+        return (start_pos != a.start_pos || end_pos != a.end_pos);
     }
     bool operator<(const Edge &a){
         return len < a.len;
@@ -103,9 +101,7 @@ public:
     Map();
 
 public:
-    QVector<QLinkedList<Pos>> m_map;
-    //QVector<Pos> m_all_pos;    //记录所有路径点
-    //QVector<Edge> m_all_edges;
+    QVector<QLinkedList<int>> m_map;    //邻接表 记录节点id
 };
 
 #endif // MAP_H

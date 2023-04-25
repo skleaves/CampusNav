@@ -4,6 +4,8 @@
 #include <QGraphicsEllipseItem>
 #include <QStyleOptionGraphicsItem>
 #include <QPropertyAnimation>
+#include <QGraphicsSceneMouseEvent>
+#include <QPainter>
 #include "map.h"
 
 class MyGraphicsItem : public QGraphicsEllipseItem
@@ -25,6 +27,19 @@ public:
      void setPosition(Pos *pos);
      Pos * getPosition();
 
+     void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget) Q_DECL_OVERRIDE
+     {
+         QStyleOptionGraphicsItem op;
+         op.initFrom(widget);
+         if (option->state & QStyle::State_Selected) {
+            op.state = QStyle::State_None;
+         }
+         QGraphicsEllipseItem::paint(painter, &op, widget);
+     }
+
+     void mouseMoveEvent(QGraphicsSceneMouseEvent *event) Q_DECL_OVERRIDE;
+     void mousePressEvent(QGraphicsSceneMouseEvent *event) Q_DECL_OVERRIDE;
+     void mouseReleaseEvent(QGraphicsSceneMouseEvent *event) Q_DECL_OVERRIDE;
      void hoverEnterEvent(QGraphicsSceneHoverEvent * event) Q_DECL_OVERRIDE;
      //void hoverMoveEvent(QGraphicsSceneHoverEvent * event) Q_DECL_OVERRIDE;
      void hoverLeaveEvent(QGraphicsSceneHoverEvent * event) Q_DECL_OVERRIDE;
