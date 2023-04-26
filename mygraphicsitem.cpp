@@ -85,21 +85,26 @@ void MyGraphicsItem::mousePressEvent(QGraphicsSceneMouseEvent *event)
 
 void MyGraphicsItem::mouseReleaseEvent(QGraphicsSceneMouseEvent *event)
 {
-    //qDebug() << "[Item]: release";
-    /*
-    QPointF newp = event->scenePos();
+    //debug 点击后就会修改Pos
+    QPointF newp = this->pos();
     Pos *p = this->getPosition();
-    p->x = newp.x();
-    p->y = newp.y();
-    */
+    if (p->isBuild) {
+        p->x = newp.x() + 20;
+        p->y = newp.y() + 20;
+    }
+    else {
+        p->x = newp.x() + 15;
+        p->y = newp.y() + 15;
+    }
+
     QGraphicsEllipseItem::mouseReleaseEvent(event);
 }
 
 void MyGraphicsItem::hoverEnterEvent(QGraphicsSceneHoverEvent *event)
 {
     this->setOpacity(1);
-    Pos *p = this->getPosition();
-    qDebug() << p->id << p->name << p->x << p->y;
+    //Pos *p = this->getPosition();
+    //qDebug() << p->id << p->name << p->x << p->y;
     QGraphicsEllipseItem::hoverEnterEvent(event);
 }
 

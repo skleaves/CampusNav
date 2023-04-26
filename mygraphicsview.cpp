@@ -56,6 +56,7 @@ void MyGraphicsView::setImage(QImage img)
     QGraphicsScene *scene = new QGraphicsScene();
     //画布添加至场景
     scene->addItem(map);
+    scene->setItemIndexMethod(QGraphicsScene::NoIndex);
     //场景绑定到控件
     this->setScene(scene);
     this->show();
@@ -128,6 +129,11 @@ Pos * MyGraphicsView::addPathPoint(QPointF p)
 void MyGraphicsView::addLine(int pid1, int pid2)
 {
     //todo 需要去重
+    if (m_map->m_adjList[pid1].contains(pid2)) {
+        qDebug() << "已经存在路径";
+        return;
+    }
+
     double len = Edge::dist(m_map->m_all_locs[pid1]->x, m_map->m_all_locs[pid1]->y,
                             m_map->m_all_locs[pid2]->x, m_map->m_all_locs[pid2]->y);
     Edge *edge = new Edge(pid1, pid2, len);
@@ -174,13 +180,14 @@ void MyGraphicsView::drawLine(Edge *e)
 {
     int x1 = m_map->m_all_locs[e->start_pos]->x, x2 = m_map->m_all_locs[e->end_pos]->x;
     int y1 = m_map->m_all_locs[e->start_pos]->y, y2 = m_map->m_all_locs[e->end_pos]->y;
-    qDebug() << "add path at" << x1 << y1 << "and" << x2 << y2;
+    //qDebug() << "add path at" << x1 << y1 << "and" << x2 << y2;
     QGraphicsLineItem *line = new QGraphicsLineItem(x1, y1, x2, y2);
     m_all_edges_list.append(line);
     line->setZValue(1);
     QPen pen(Qt::blue);
     pen.setWidth(10);
     pen.setStyle(Qt::DashDotLine);
+    pen.setJoinStyle(Qt::RoundJoin);
     line->setPen(pen);
     this->scene()->addItem(line);
 }
@@ -210,10 +217,6 @@ void MyGraphicsView::mousePressEvent(QMouseEvent *event)
 {
     if (event->button() == Qt::RightButton) //准备移动画布
     {
-//        if (m_state == M_ADD_PATH) {
-//            m_state = M_DEFAULT;
-//            return;
-//        }
         this->setCursor(Qt::PointingHandCursor);
         m_startpos = mapToScene(event->pos());
     }
@@ -239,7 +242,7 @@ void MyGraphicsView::mousePressEvent(QMouseEvent *event)
                 pitem->setPos(p.x() - 20, p.y() - 20);
                 this->scene()->addItem(pitem);
                 //qDebug() << pitem->collidingItems().size();
-                if (pitem->collidingItems().size() > 1) {
+                if (pitem->collidingItems().size() > 2) {
                     qDebug() << "too close!" << pitem->collidingItems().size();
                     delete pitem;
                     return;
@@ -247,6 +250,8 @@ void MyGraphicsView::mousePressEvent(QMouseEvent *event)
                 //否则添加并绘制新坐标点
                 delete pitem;
                 addPoint(p);
+                //清除历史记录
+                this->m_phistory.clear();
             }
         }
 
@@ -278,7 +283,6 @@ void MyGraphicsView::mousePressEvent(QMouseEvent *event)
 //                    }
                     emit printLog("路径添加成功");
                     m_plast = item->getPosition();
-                    //m_state = M_ADD_PATHBG;
                     return;
                 }
                 Pos * newp = addPathPoint(p);
@@ -297,7 +301,8 @@ void MyGraphicsView::mouseReleaseEvent(QMouseEvent *event)
     //鼠标弹起进行视图移动
     if (event->button() == Qt::RightButton)
     {
-        this->setCursor(Qt::ArrowCursor);
+        if (this->m_state == M_DEFAULT) this->setCursor(Qt::ArrowCursor);
+        else if (this->m_state == M_ADD_LOC) this->setCursor(Qt::CrossCursor);
         m_endpos = mapToScene(event->pos());
 
         //计算鼠标移动的距离
@@ -309,7 +314,7 @@ void MyGraphicsView::mouseReleaseEvent(QMouseEvent *event)
 
 void MyGraphicsView::mouseMoveEvent(QMouseEvent *event)
 {
-    //qDebug() << "[View]: mouse move";
+
     QPoint viewPoint = event->pos();
     viewCoord->setText(QString::asprintf("view: %d, %d", viewPoint.x(), viewPoint.y()));
     //场景坐标
@@ -322,6 +327,22 @@ void MyGraphicsView::mouseMoveEvent(QMouseEvent *event)
         QPointF itemPoint = item->mapFromScene(scenePoint);
         mapCoord->setText(QString::asprintf("item: %.0f, %.0f", itemPoint.x(), itemPoint.y()));
     }
+
+    if (this->m_state == M_ADD_LOC) {
+        //this->scene()->removeItem(prevItem);
+        if (prevItem != NULL) {
+            delete prevItem;
+            prevItem = NULL;
+        }
+        prevItem = new MyGraphicsItem(0, 0, 40, 40);
+        prevItem->setZValue(3);
+        prevItem->setOpacity(0.35);
+        prevItem->setPos(scenePoint.x() - 20, scenePoint.y() - 20);
+        prevItem->setPen(QPen(Qt::NoPen));
+        prevItem->setBrush(QBrush(Qt::blue));
+        this->scene()->addItem(prevItem);
+    }
+
 
     //debug  查看item是否被删除
     //qDebug() << this->items().size()-1;
@@ -336,15 +357,23 @@ void MyGraphicsView::keyPressEvent(QKeyEvent *event)
         if (this->m_state == M_ADD_LOC) {
             //需要保证有点
             if (this->m_all_locs_list.size() > 0) {
-                //将图元对象删除
-                delete this->m_all_locs_list.takeLast();
-                //在map中删除点
-                Pos * p = this->m_map->m_all_locs.back();
-                this->m_map->m_all_locs.pop_back();
-                this->m_phistory.push(p);   //放入暂存区
-                Pos::cnt --;    //编号要减1
+                int pid = m_all_locs_list.back()->getPosition()->id;
+                //只有在没有边的情况下才允许撤销
+                if (this->m_map->m_adjList[pid].size() == 1) {
+                    //将图元对象删除
+                    delete this->m_all_locs_list.takeLast();
+                    //在map中删除点
+                    Pos * p = this->m_map->m_all_locs.back();
+                    this->m_map->m_all_locs.pop_back();
+                    this->m_map->m_adjList.pop_back();
+
+                    this->m_phistory.push(p);   //放入暂存区
+                    Pos::cnt --;    //编号要减1
+                }
             }
         }
+
+
         //qDebug() << "按下了撤销";
     }
     else if (event->matches(QKeySequence::Redo)) {
@@ -356,6 +385,27 @@ void MyGraphicsView::keyPressEvent(QKeyEvent *event)
             else qDebug() << "没有历史记录";
         }
         //qDebug() << "按下了重做";
+    }
+    else if (event->matches(QKeySequence::Cancel)) {
+        //qDebug() << "按下了取消";
+        this->m_state = M_DEFAULT;
+        if (prevItem != NULL) {
+            delete prevItem;
+            prevItem = NULL;
+        }
+        //this->scene()->removeItem(prevItem);
+        emit stateChanged(M_DEFAULT);
+    }
+    //debug 显示邻接表
+    else if (event->matches(QKeySequence::SelectAll)) {
+        qDebug() << "显示邻接表";
+        for (auto lk : this->m_map->m_adjList) {
+            while (!lk.isEmpty()) {
+                std::cout << lk.first() << "->";
+                lk.pop_front();
+            }
+            std::cout << std::endl;
+        }
     }
 
     QGraphicsView::keyPressEvent(event);
@@ -378,13 +428,17 @@ void MyGraphicsView::onActionNormal(bool checked)
 {
     if (checked == true) this->m_state = M_DEFAULT;
     this->setCursor(Qt::ArrowCursor);
+    if (prevItem != NULL) {
+        delete prevItem;
+        prevItem = NULL;
+    }
+    //this->scene()->removeItem(prevItem);
 }
 
 void MyGraphicsView::onActionAddPos(bool checked)
 {
     if (checked == true) this->m_state = M_ADD_LOC;
     this->setCursor(Qt::CrossCursor);
-    //新建匿名图元 用于预览添加位置
 }
 
 void MyGraphicsView::onActionAddPath(bool checked)
@@ -447,4 +501,5 @@ void MyGraphicsView::onActionClear()
 {
     clearPoint();
     clearLine();
+    this->m_map->m_adjList.clear();
 }

@@ -22,8 +22,12 @@ public:
 private:
     Ui::MainWindow *ui;
 
+    QAction *normal_action, *add_loc_action, *add_path_action;
+
+
 public slots:
     void onPrintLog(QString str);
+    void onStateChanged(int state);
     void onGetUserInput(bool &isOK, QString &str);
 };
 #endif // MAINWINDOW_H

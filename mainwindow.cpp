@@ -15,20 +15,23 @@ MainWindow::MainWindow(QWidget *parent)
 
     QActionGroup* normalAddActions = new QActionGroup(this);
     normalAddActions->setExclusive(true);
-    QAction *normal_action = ui->toolBar->addAction("查看地图");
+
+    normal_action = ui->toolBar->addAction("查看地图");
     normalAddActions->addAction(normal_action);
     normal_action->setParent(ui->toolBar);
     normal_action->setCheckable(true);
     normal_action->setChecked(true);
     normal_action->setFont(font);
     normal_action->setIcon(QIcon(":/img/normal.png"));
-    QAction *add_loc_action = ui->toolBar->addAction("添加地点");
+
+    add_loc_action = ui->toolBar->addAction("添加地点");
     normalAddActions->addAction(add_loc_action);
     add_loc_action->setParent(ui->toolBar);
     add_loc_action->setCheckable(true);
     add_loc_action->setFont(font);
     add_loc_action->setIcon(QIcon(":/img/pos.png"));
-    QAction *add_path_action = ui->toolBar->addAction("添加路径");
+
+    add_path_action = ui->toolBar->addAction("添加路径");
     normalAddActions->addAction(add_path_action);
     add_path_action->setParent(ui->toolBar);
     add_path_action->setCheckable(true);
@@ -70,6 +73,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(load_action, &QAction::triggered, this->ui->graphicsView, &MyGraphicsView::onActionLoad);
     connect(clear_action, &QAction::triggered, this->ui->graphicsView, &MyGraphicsView::onActionClear);
 
+    connect(this->ui->graphicsView, &MyGraphicsView::stateChanged, this, &MainWindow::onStateChanged);
     connect(this->ui->graphicsView, &MyGraphicsView::printLog, this, &MainWindow::onPrintLog);
     connect(this->ui->graphicsView, &MyGraphicsView::getUserInput, this, &MainWindow::onGetUserInput);
 }
@@ -82,6 +86,28 @@ MainWindow::~MainWindow()
 void MainWindow::onPrintLog(QString str)
 {
     this->ui->textLog->append(str);
+}
+
+void MainWindow::onStateChanged(int state)
+{
+    switch (state) {
+    case 0:     //普通模式
+        this->ui->graphicsView->setCursor(Qt::ArrowCursor);
+        normal_action->setChecked(true);
+        break;
+    case 1:     //添加地点
+        this->ui->graphicsView->setCursor(Qt::CrossCursor);
+        add_loc_action->setChecked(true);
+        break;
+    case 2:     //预添加路径
+        this->ui->graphicsView->setCursor(Qt::PointingHandCursor);
+        add_path_action->setChecked(true);
+        break;
+    case 3:     //添加路径
+        this->ui->graphicsView->setCursor(Qt::PointingHandCursor);
+        add_path_action->setChecked(true);
+        break;
+    }
 }
 
 void MainWindow::onGetUserInput(bool &isOK, QString &str)

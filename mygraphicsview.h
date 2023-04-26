@@ -44,6 +44,7 @@ private:
     };
     int m_state = M_DEFAULT;    //状态标记
 
+    MyGraphicsItem *prevItem;   //用于预览
     QPointF m_startpos;         //鼠标开始点 同下用于移动视图
     QPointF m_endpos;           //鼠标结束点
     Pos *m_plast;
@@ -69,6 +70,7 @@ public:
 //信号
 signals:
     void read_MapData();
+    void stateChanged(int state);
     void printLog(QString str);
     void getUserInput(bool &isOK, QString &str);
 
