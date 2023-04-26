@@ -1,9 +1,12 @@
 #include "mygraphicsview.h"
 #include <QtDebug>
+#include <iostream>
+
 
 MyGraphicsView::MyGraphicsView(QWidget *parent) : QGraphicsView(parent)
 {
     connect(this, &MyGraphicsView::read_MapData, this, &MyGraphicsView::on_readMapData);
+    m_map = new Map();
 }
 
 void MyGraphicsView::wheelEvent(QWheelEvent *event)
@@ -95,14 +98,17 @@ Pos * MyGraphicsView::addPoint(QPointF p)
     //需要弹出输入窗口获取地点名
     //if (!isOK) return NULL;
     Pos *pos = new Pos(p.x(), p.y(), true);
-    m_all_locs.push_back(pos);
-    qDebug() << pos->id;
+    m_map->m_all_locs.push_back(pos);
+    QLinkedList<int> lk = QLinkedList<int>();
+    lk.push_back(pos->id);          //初始化新节点链表头
+    m_map->m_adjList.push_back(lk);
+    //qDebug() << pos->id;
     drawPoint(pos);
 
-    bool isOK;
-    QString name;
-    emit getUserInput(isOK, name);
-    pos->name = name;
+//    bool isOK;
+//    QString name;
+//    emit getUserInput(isOK, name);
+//    pos->name = name;
 
     return pos;
 }
@@ -110,24 +116,35 @@ Pos * MyGraphicsView::addPoint(QPointF p)
 Pos * MyGraphicsView::addPathPoint(QPointF p)
 {
     Pos *pos = new Pos(p.x(), p.y(), false);
-    m_all_locs.push_back(pos);
-    qDebug() << pos->id;
+    m_map->m_all_locs.push_back(pos);
+    QLinkedList<int> lk = QLinkedList<int>();
+    lk.push_back(pos->id);          //初始化新节点链表头
+    m_map->m_adjList.push_back(lk);
+    //qDebug() << pos->id;
     drawPathPoint(pos);
     return pos;
 }
 
 void MyGraphicsView::addLine(int pid1, int pid2)
 {
-    double len = Edge::dist(m_all_locs[pid1]->x, m_all_locs[pid1]->y,
-                            m_all_locs[pid2]->x, m_all_locs[pid2]->y);
+    //todo 需要去重
+    double len = Edge::dist(m_map->m_all_locs[pid1]->x, m_map->m_all_locs[pid1]->y,
+                            m_map->m_all_locs[pid2]->x, m_map->m_all_locs[pid2]->y);
     Edge *edge = new Edge(pid1, pid2, len);
-    m_all_edges.push_back(edge);
+    m_map->m_all_edges.push_back(edge);
+    //在两个节点间建立无向边 权值待添加
+    m_map->m_adjList[pid1].push_back(pid2);
+    m_map->m_adjList[pid2].push_back(pid1);
     drawLine(edge);
 }
 
 void MyGraphicsView::drawPoint(Pos *p)
 {
     MyGraphicsItem *pitem = new MyGraphicsItem(0, 0, 40, 40);
+    pitem->setFlag(MyGraphicsItem::ItemIsSelectable, true);
+    pitem->setFlag(MyGraphicsItem::ItemIsMovable, true);
+    pitem->setFlag(MyGraphicsItem::ItemSendsGeometryChanges, true);
+    pitem->setSelected(false);
     pitem->setZValue(3);
     pitem->setPosition(p);
     pitem->setOpacity(0.5);
@@ -136,8 +153,6 @@ void MyGraphicsView::drawPoint(Pos *p)
     pitem->setBrush(QBrush(Qt::blue));
     pitem->setAcceptHoverEvents(true);
     pitem->setAcceptedMouseButtons(Qt::LeftButton);
-    pitem->setFlag(MyGraphicsItem::ItemIsSelectable, true);
-    pitem->setFlag(MyGraphicsItem::ItemIsMovable, true);
     m_all_locs_list.append(pitem);
     this->scene()->addItem(pitem);
 }
@@ -157,8 +172,9 @@ void MyGraphicsView::drawPathPoint(Pos *p)
 
 void MyGraphicsView::drawLine(Edge *e)
 {
-    int x1 = m_all_locs[e->start_pos]->x, x2 = m_all_locs[e->end_pos]->x;
-    int y1 = m_all_locs[e->start_pos]->y, y2 = m_all_locs[e->end_pos]->y;
+    int x1 = m_map->m_all_locs[e->start_pos]->x, x2 = m_map->m_all_locs[e->end_pos]->x;
+    int y1 = m_map->m_all_locs[e->start_pos]->y, y2 = m_map->m_all_locs[e->end_pos]->y;
+    qDebug() << "add path at" << x1 << y1 << "and" << x2 << y2;
     QGraphicsLineItem *line = new QGraphicsLineItem(x1, y1, x2, y2);
     m_all_edges_list.append(line);
     line->setZValue(1);
@@ -172,14 +188,20 @@ void MyGraphicsView::drawLine(Edge *e)
 void MyGraphicsView::clearPoint()
 {
     Pos::cnt = 0;
-    m_all_locs.clear();
-    while (!m_all_locs_list.isEmpty())
-        delete m_all_locs_list.takeFirst();
+    m_map->m_all_locs.clear();
+    while (!m_all_locs_list.isEmpty()) {
+        MyGraphicsItem *it = m_all_locs_list.takeLast();
+        //qDebug() << it->getPosition()->id;
+        delete it;
+        //this->viewport()->update();
+        //this->update();
+        //this->show();
+    }
 }
 
 void MyGraphicsView::clearLine()
 {
-    m_all_edges.clear();
+    m_map->m_all_edges.clear();
     while (!m_all_edges_list.isEmpty())
         delete m_all_edges_list.takeFirst();
 }
@@ -203,6 +225,8 @@ void MyGraphicsView::mousePressEvent(QMouseEvent *event)
     }
     else if (event->button() == Qt::LeftButton){
         QPointF p = this->mapToScene(event->pos());
+        p.setX(round(p.x()));
+        p.setY(round(p.y()));
         //如果在添加目标点模式 则尝试添加新目标点
         if (m_state == M_ADD_LOC) {
             QGraphicsItem *item = NULL;
@@ -214,14 +238,16 @@ void MyGraphicsView::mousePressEvent(QMouseEvent *event)
                 pitem->setOpacity(0);
                 pitem->setPos(p.x() - 20, p.y() - 20);
                 this->scene()->addItem(pitem);
+                //qDebug() << pitem->collidingItems().size();
                 if (pitem->collidingItems().size() > 1) {
-                    qDebug() << "too close!";
+                    qDebug() << "too close!" << pitem->collidingItems().size();
                     delete pitem;
                     return;
                 }
+                //否则添加并绘制新坐标点
+                delete pitem;
+                addPoint(p);
             }
-            //否则添加并绘制新坐标点
-            addPoint(p);
         }
 
         //若在准备添加路径模式 则尝试添加路径
@@ -245,6 +271,11 @@ void MyGraphicsView::mousePressEvent(QMouseEvent *event)
             if (item != NULL) {
                 if (item->type() == MyGraphicsItem::MyItem) {
                     addLine(m_plast->id, item->getPosition()->id);
+                    //debug 显示一下与新添加点邻接的点
+//                    QLinkedList<int> lk = m_map->m_adjList[item->getPosition()->id];
+//                    while (!lk.isEmpty()) {
+//                        std::cout << lk.takeLast() << " " << std::endl;
+//                    }
                     emit printLog("路径添加成功");
                     m_plast = item->getPosition();
                     //m_state = M_ADD_PATHBG;
@@ -292,18 +323,53 @@ void MyGraphicsView::mouseMoveEvent(QMouseEvent *event)
         mapCoord->setText(QString::asprintf("item: %.0f, %.0f", itemPoint.x(), itemPoint.y()));
     }
 
+    //debug  查看item是否被删除
+    //qDebug() << this->items().size()-1;
+
     QGraphicsView::mouseMoveEvent(event);
+}
+
+void MyGraphicsView::keyPressEvent(QKeyEvent *event)
+{
+    //撤销
+    if (event->matches(QKeySequence::Undo)) {
+        if (this->m_state == M_ADD_LOC) {
+            //需要保证有点
+            if (this->m_all_locs_list.size() > 0) {
+                //将图元对象删除
+                delete this->m_all_locs_list.takeLast();
+                //在map中删除点
+                Pos * p = this->m_map->m_all_locs.back();
+                this->m_map->m_all_locs.pop_back();
+                this->m_phistory.push(p);   //放入暂存区
+                Pos::cnt --;    //编号要减1
+            }
+        }
+        //qDebug() << "按下了撤销";
+    }
+    else if (event->matches(QKeySequence::Redo)) {
+        if (this->m_state == M_ADD_LOC) {
+            //有历史记录
+            if (this->m_phistory.size() > 0) {
+                drawPoint(m_phistory.pop());
+            }
+            else qDebug() << "没有历史记录";
+        }
+        //qDebug() << "按下了重做";
+    }
+
+    QGraphicsView::keyPressEvent(event);
 }
 
 void MyGraphicsView::on_readMapData()
 {
-    qDebug() << m_all_locs.isEmpty();
-    qDebug() << m_all_edges.isEmpty();
-    for (auto p : m_all_locs) {
+    qDebug() << m_map->m_all_locs.isEmpty();
+    qDebug() << m_map->m_all_edges.isEmpty();
+    for (auto p : m_map->m_all_locs) {
         if (p->isBuild == true) drawPoint(p);
         else drawPathPoint(p);
     }
-    for (auto e : m_all_edges) {
+    for (auto e : m_map->m_all_edges) {
         drawLine(e);
     }
 }
@@ -337,15 +403,15 @@ void MyGraphicsView::onActionSave()
     QDataStream out(&file);
     out.setVersion(QDataStream::Qt_4_3);
 
-    out << m_all_locs.size();
-    out << m_all_edges.size();
-    for (auto p : m_all_locs) {
+    out << m_map->m_all_locs.size();
+    out << m_map->m_all_edges.size();
+    for (auto p : m_map->m_all_locs) {
         out << *p;
     }
-    for (auto e : m_all_edges) {
+    for (auto e : m_map->m_all_edges) {
         out << *e;
     }
-    qDebug() << file.flush() << m_all_locs.size() << m_all_edges.size();
+    qDebug() << file.flush() << m_map->m_all_locs.size() << m_map->m_all_edges.size();
 }
 
 void MyGraphicsView::onActionLoad()
@@ -367,12 +433,12 @@ void MyGraphicsView::onActionLoad()
     for (int i = 0; i < loc_size; i ++) {
         Pos *p = new Pos();
         in >> *p;
-        m_all_locs.push_back(p);
+        m_map->m_all_locs.push_back(p);
     }
     for (int i = 0; i < edge_size; i ++) {
         Edge *e = new Edge();
         in >> *e;
-        m_all_edges.push_back(e);
+        m_map->m_all_edges.push_back(e);
     }
     emit read_MapData();
 }

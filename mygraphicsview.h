@@ -13,6 +13,7 @@
 #include <vector>
 #include <QMatrix>
 #include <QLinkedList>
+#include <QStack>
 #include "map.h"
 #include "mygraphicsitem.h"
 
@@ -47,12 +48,11 @@ private:
     QPointF m_endpos;           //鼠标结束点
     Pos *m_plast;
     qreal m_scalnum = 1;        //缩放系数
-    qreal m_scaldft = 0.170438; //默认缩放系数
+    qreal m_scaldft = 0.99;     //默认缩放系数0.170438
 
-    QVector<Pos *> m_all_locs;    //记录所有路径点
-    QVector<Edge *> m_all_edges;
+    Map * m_map;    //存储的图
 
-
+    QStack<Pos *> m_phistory;      //用于撤销时暂存点的历史记录
     QLinkedList<MyGraphicsItem *> m_all_locs_list;       //所有路径点图元的链表 用于删除
     QLinkedList<QGraphicsLineItem *> m_all_edges_list;   //所有边图元的链表 用于删除
 
@@ -61,9 +61,10 @@ private:
     void mousePressEvent(QMouseEvent *event) Q_DECL_OVERRIDE;
     void mouseReleaseEvent(QMouseEvent *event) Q_DECL_OVERRIDE;
     void mouseMoveEvent(QMouseEvent *event) Q_DECL_OVERRIDE;
+    void keyPressEvent(QKeyEvent *event) Q_DECL_OVERRIDE;
+
 public:
-    Map myMap;
-    QLabel  *sceneCoord,*viewCoord,*mapCoord;
+    QLabel  *sceneCoord, *viewCoord, *mapCoord;
 
 //信号
 signals:

@@ -15,6 +15,7 @@ private:
 
 public:
     MyGraphicsItem();
+    ~MyGraphicsItem();
     MyGraphicsItem(qreal x, qreal y, qreal width, qreal height, QGraphicsItem *parent = Q_NULLPTR);
 
 public:
@@ -27,15 +28,10 @@ public:
      void setPosition(Pos *pos);
      Pos * getPosition();
 
-     void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget) Q_DECL_OVERRIDE
-     {
-         QStyleOptionGraphicsItem op;
-         op.initFrom(widget);
-         if (option->state & QStyle::State_Selected) {
-            op.state = QStyle::State_None;
-         }
-         QGraphicsEllipseItem::paint(painter, &op, widget);
-     }
+     //重写绘制 去除选中的虚线框 更改为自定义样式
+     void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget) Q_DECL_OVERRIDE;
+
+     QVariant itemChange(GraphicsItemChange change, const QVariant &value) Q_DECL_OVERRIDE;
 
      void mouseMoveEvent(QGraphicsSceneMouseEvent *event) Q_DECL_OVERRIDE;
      void mousePressEvent(QGraphicsSceneMouseEvent *event) Q_DECL_OVERRIDE;

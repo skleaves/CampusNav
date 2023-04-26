@@ -6,6 +6,7 @@
 #include <QVector>
 #include <QLinkedList>
 #include <QDebug>
+#include <unordered_map>
 
 
 struct Pos
@@ -101,7 +102,13 @@ public:
     Map();
 
 public:
-    QVector<QLinkedList<int>> m_map;    //邻接表 记录节点id
+    QVector<Pos *> m_all_locs;          //记录所有路径点
+    QVector<Edge *> m_all_edges;
+    //邻接表 记录节点id
+    QVector<QLinkedList<int>> m_adjList;
+    //哈希表 记录两点之间是否有边及边的权值
+    //unordered_map<>
+
 };
 
 #endif // MAP_H

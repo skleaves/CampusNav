@@ -4,7 +4,10 @@ int Pos::cnt = 0;    //节点的编号 从0开始
 
 Map::Map()
 {
-
+//    //初始化邻接表 100个节点
+//    for (int i = 0; i < 100; i ++) {
+//        m_adjList[i].push_back(i);
+//    }
 }
 
 

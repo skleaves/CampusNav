@@ -7,7 +7,6 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
 
-
     ui->toolBar->setIconSize(QSize(40,40));
     ui->toolBar->layout()->setContentsMargins(5, 5, 5, 5);	//设置周围间隔
     ui->toolBar->layout()->setSpacing(10);	//设置部件之间的间隔
@@ -53,7 +52,7 @@ MainWindow::MainWindow(QWidget *parent)
 
 
     //显示图片
-    QImage img1("C:\\Users\\atsky\\Pictures\\cube-1.png");
+    QImage img1("C:\\Users\\atsky\\Desktop\\test.png");
     //QImage img1(":/img/map.png");
     ui->graphicsView->sceneCoord = ui->sceneCoord;
     ui->graphicsView->viewCoord = ui->viewCoord;

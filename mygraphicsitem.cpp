@@ -5,9 +5,59 @@ MyGraphicsItem::MyGraphicsItem()
 
 }
 
+MyGraphicsItem::~MyGraphicsItem()
+{
+    //qDebug() << "item析构函数";
+    this->prepareGeometryChange();
+}
+
 MyGraphicsItem::MyGraphicsItem(qreal x, qreal y, qreal width, qreal height, QGraphicsItem *parent)
     : QGraphicsEllipseItem(x, y, width, height, parent)
 {
+}
+
+void MyGraphicsItem::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget) {
+    QStyleOptionGraphicsItem op;
+    op.initFrom(widget);
+
+    //清空选中时样式
+    if (option->state & QStyle::State_Selected) {
+       op.state = QStyle::State_None;
+    }
+
+    QGraphicsEllipseItem::paint(painter, &op, widget);
+
+    //绘制选中时样式
+    if (option->state & QStyle::State_Selected) {
+        QPainterPath path = this->shape();
+        painter->setOpacity(1);
+        QPen pen = QPen(Qt::green);
+        pen.setStyle(Qt::DotLine);
+        pen.setWidth(3);
+        painter->setPen(pen);
+        //painter->setBrush(QBrush(Qt::cyan));
+        painter->drawPath(path);
+    }
+
+}
+
+QVariant MyGraphicsItem::itemChange(QGraphicsItem::GraphicsItemChange change, const QVariant &value)
+{
+    switch (change) {
+        //选中状态发生改变后设置不透明度
+        case QGraphicsItem::ItemSelectedHasChanged:
+            if (this->isSelected()) this->setOpacity(1);
+            else this->setOpacity(0.5);
+            break;
+        /*
+        case QGraphicsItem::ItemPositionChange:
+            qDebug() << this->pos();  //加20后转换为中心的坐标
+            break;
+        */
+        default:
+            break;
+    }
+    return QGraphicsEllipseItem::itemChange(change, value);
 }
 
 void MyGraphicsItem::setPosition(Pos *pos)
@@ -23,6 +73,8 @@ Pos * MyGraphicsItem::getPosition()
 void MyGraphicsItem::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
 {
     //qDebug() << "[Item]: move";
+    //重建所有相连的边
+
     QGraphicsEllipseItem::mouseMoveEvent(event);
 }
 
@@ -34,10 +86,12 @@ void MyGraphicsItem::mousePressEvent(QGraphicsSceneMouseEvent *event)
 void MyGraphicsItem::mouseReleaseEvent(QGraphicsSceneMouseEvent *event)
 {
     //qDebug() << "[Item]: release";
+    /*
     QPointF newp = event->scenePos();
     Pos *p = this->getPosition();
     p->x = newp.x();
     p->y = newp.y();
+    */
     QGraphicsEllipseItem::mouseReleaseEvent(event);
 }
 
@@ -52,6 +106,6 @@ void MyGraphicsItem::hoverEnterEvent(QGraphicsSceneHoverEvent *event)
 
 void MyGraphicsItem::hoverLeaveEvent(QGraphicsSceneHoverEvent *event)
 {
-    this->setOpacity(0.5);
+    if (!this->isSelected()) this->setOpacity(0.5);
     QGraphicsEllipseItem::hoverLeaveEvent(event);
 }
