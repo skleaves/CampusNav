@@ -6,6 +6,11 @@
 #include <QInputDialog>
 #include <QLayout>
 #include <QAction>
+#include <QLabel>
+#include <QCompleter>
+#include <QListView>
+#include "findpathwidget.h"
+#include "poswidget.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -22,12 +27,21 @@ public:
 private:
     Ui::MainWindow *ui;
 
+    FindPathWidget *findPathWidget;
+    PosWidget *posWidget;
+    QLabel *currentPos;
     QAction *normal_action, *add_loc_action, *add_path_action;
 
 
 public slots:
-    void onPrintLog(QString str);
+    void onActionNormal(bool checked);
+    void onActionPos(bool checked);
+    void onActionPath(bool checked);
+    void onReadMap();
     void onStateChanged(int state);
     void onGetUserInput(bool &isOK, QString &str);
+    void onShowSelectedPos(QVector<QString> name);
+    void onlineNameEdited(QVector<QString> name);
+
 };
 #endif // MAINWINDOW_H

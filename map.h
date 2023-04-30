@@ -13,7 +13,7 @@ struct Pos
 {
     int x, y, id;
     bool isBuild;
-    QString name; //地点名
+    QVector<QString> name; //地点名
 
     static int cnt;
     Pos(int x = 0, int y = 0, bool isBuild = false) {

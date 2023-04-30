@@ -8,10 +8,17 @@ MainWindow::MainWindow(QWidget *parent)
     ui->setupUi(this);
 
     ui->toolBar->setIconSize(QSize(40,40));
+    ui->toolBar->setStyleSheet("QToolBar {border-right: 2px;}");
     ui->toolBar->layout()->setContentsMargins(5, 5, 5, 5);	//设置周围间隔
     ui->toolBar->layout()->setSpacing(10);	//设置部件之间的间隔
     QFont font("Microsoft YaHei");
     font.setPointSize(10);
+
+    findPathWidget = new FindPathWidget();
+    ui->stackedWidget->addWidget(findPathWidget);
+    posWidget = new PosWidget();
+    ui->stackedWidget->addWidget(posWidget);
+    ui->stackedWidget->setCurrentWidget(findPathWidget);
 
     QActionGroup* normalAddActions = new QActionGroup(this);
     normalAddActions->setExclusive(true);
@@ -24,7 +31,7 @@ MainWindow::MainWindow(QWidget *parent)
     normal_action->setFont(font);
     normal_action->setIcon(QIcon(":/img/normal.png"));
 
-    add_loc_action = ui->toolBar->addAction("添加地点");
+    add_loc_action = ui->toolBar->addAction("编辑地点");
     normalAddActions->addAction(add_loc_action);
     add_loc_action->setParent(ui->toolBar);
     add_loc_action->setCheckable(true);
@@ -53,29 +60,51 @@ MainWindow::MainWindow(QWidget *parent)
     clear_action->setIcon(QIcon(":/img/clear.png"));
 
 
+    QLabel *viewCoord = new QLabel("view: 0, 0",this);
+    viewCoord->setMinimumWidth(150);
+    ui->statusBar->addWidget(viewCoord);
+    QLabel *sceneCoord = new QLabel("scene: 0, 0",this);
+    sceneCoord->setMinimumWidth(150);
+    ui->statusBar->addWidget(sceneCoord);
+    QLabel *mapCoord = new QLabel("item: 0, 0",this);
+    mapCoord->setMinimumWidth(150);
+    ui->statusBar->addWidget(mapCoord);
+
+    currentPos = new QLabel("",this);
+    currentPos->setMinimumWidth(150);
+    ui->statusBar->addPermanentWidget(currentPos);
 
     //显示图片
-    QImage img1("C:\\Users\\atsky\\Desktop\\test.png");
-    //QImage img1(":/img/map.png");
-    ui->graphicsView->sceneCoord = ui->sceneCoord;
-    ui->graphicsView->viewCoord = ui->viewCoord;
-    ui->graphicsView->mapCoord = ui->mapCoord;
+    //QImage img1("C:\\Users\\atsky\\Desktop\\test.png");
+    QImage img1(":/img/map.png");
+    //ui->graphicsView->setStyleSheet("{border: 2px solid gray;}");
+    ui->graphicsView->sceneCoord = sceneCoord;
+    ui->graphicsView->viewCoord = viewCoord;
+    ui->graphicsView->mapCoord = mapCoord;
+    ui->graphicsView->currentPos = currentPos;
     ui->graphicsView->setImage(img1);
     ui->graphicsView->setRenderHints(QPainter::Antialiasing | QPainter::SmoothPixmapTransform);
     ui->graphicsView->setMouseTracking(true);
 
 
     //绑定各个控件对应的信号与槽函数
+    connect(normal_action, &QAction::triggered, this, &MainWindow::onActionNormal);
+    connect(add_loc_action, &QAction::triggered, this, &MainWindow::onActionPos);
+
     connect(normal_action, &QAction::triggered, this->ui->graphicsView, &MyGraphicsView::onActionNormal);
-    connect(add_loc_action, &QAction::triggered, this->ui->graphicsView, &MyGraphicsView::onActionAddPos);
+    connect(add_loc_action, &QAction::triggered, this->ui->graphicsView, &MyGraphicsView::onActionModPos);
     connect(add_path_action, &QAction::triggered, this->ui->graphicsView, &MyGraphicsView::onActionAddPath);
     connect(save_action, &QAction::triggered, this->ui->graphicsView, &MyGraphicsView::onActionSave);
     connect(load_action, &QAction::triggered, this->ui->graphicsView, &MyGraphicsView::onActionLoad);
     connect(clear_action, &QAction::triggered, this->ui->graphicsView, &MyGraphicsView::onActionClear);
 
     connect(this->ui->graphicsView, &MyGraphicsView::stateChanged, this, &MainWindow::onStateChanged);
-    connect(this->ui->graphicsView, &MyGraphicsView::printLog, this, &MainWindow::onPrintLog);
     connect(this->ui->graphicsView, &MyGraphicsView::getUserInput, this, &MainWindow::onGetUserInput);
+    connect(this->ui->graphicsView, &MyGraphicsView::read_MapData, this, &MainWindow::onReadMap);
+    connect(this->ui->graphicsView, &MyGraphicsView::showSelectedPos, this, &MainWindow::onShowSelectedPos);
+
+    connect(this->posWidget, &PosWidget::btnAddToggled, this->ui->graphicsView, &MyGraphicsView::onActionAddPos);
+    connect(this->posWidget, &PosWidget::lineNameEdited, this, &MainWindow::onlineNameEdited);
 }
 
 MainWindow::~MainWindow()
@@ -83,9 +112,43 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
-void MainWindow::onPrintLog(QString str)
+void MainWindow::onActionNormal(bool checked)
 {
-    this->ui->textLog->append(str);
+    if (checked) this->ui->stackedWidget->setCurrentWidget(findPathWidget);
+}
+
+void MainWindow::onActionPos(bool checked)
+{
+    if (checked) this->ui->stackedWidget->setCurrentWidget(posWidget);
+}
+
+void MainWindow::onActionPath(bool checked)
+{
+
+}
+
+
+
+void MainWindow::onReadMap()
+{
+    QStringList strList;
+
+    for (auto p : ui->graphicsView->m_map->m_all_locs) {
+        QString str;
+        if (p->isBuild) {
+            if (p->name.size() > 0) str.append(p->name.first());
+            for (auto it = p->name.begin()+1; it != p->name.end(); it ++) {
+                str.append(" | ");
+                str.append(*it);
+            }
+            strList.append(str);
+        }
+    }
+    strList.sort();
+
+    if (ui->stackedWidget->currentWidget() == findPathWidget) {
+        findPathWidget->loadItems(strList);
+    }
 }
 
 void MainWindow::onStateChanged(int state)
@@ -116,4 +179,31 @@ void MainWindow::onGetUserInput(bool &isOK, QString &str)
     str = QInputDialog::getText(this, "添加地点", "请输入地点名",
                                QLineEdit::Normal, "", &OK);
     isOK = OK;
+}
+
+void MainWindow::onShowSelectedPos(QVector<QString> name)
+{
+    if (ui->stackedWidget->currentWidget() == posWidget) {
+        posWidget->showPosName(name);
+    }
+}
+
+void MainWindow::onlineNameEdited(QVector<QString> name)
+{
+    if (ui->graphicsView->selectedItem != NULL) {
+        Pos *p = ui->graphicsView->selectedItem->getPosition();
+        p->name = name;
+        QString str;
+        if (name.size() > 0) str.append(name.takeFirst());
+        if (name.size() > 0) {
+            for (auto s : name) {
+                str.append(" | ");
+                str.append(s);
+            }
+        }
+        ui->graphicsView->currentPos->setText(str);
+
+        //TODO 需要更新到下拉列表
+        onReadMap();
+    }
 }

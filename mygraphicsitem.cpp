@@ -49,11 +49,6 @@ QVariant MyGraphicsItem::itemChange(QGraphicsItem::GraphicsItemChange change, co
             if (this->isSelected()) this->setOpacity(1);
             else this->setOpacity(0.5);
             break;
-        /*
-        case QGraphicsItem::ItemPositionChange:
-            qDebug() << this->pos();  //加20后转换为中心的坐标
-            break;
-        */
         default:
             break;
     }
@@ -103,8 +98,8 @@ void MyGraphicsItem::mouseReleaseEvent(QGraphicsSceneMouseEvent *event)
 void MyGraphicsItem::hoverEnterEvent(QGraphicsSceneHoverEvent *event)
 {
     this->setOpacity(1);
-    //Pos *p = this->getPosition();
-    //qDebug() << p->id << p->name << p->x << p->y;
+    Pos *p = this->getPosition();
+    qDebug() << p->id << p->name << p->x << p->y;
     QGraphicsEllipseItem::hoverEnterEvent(event);
 }
 

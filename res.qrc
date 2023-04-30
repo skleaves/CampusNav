@@ -7,5 +7,7 @@
         <file>img/shuaxin.png</file>
         <file>img/normal.png</file>
         <file>img/clear.png</file>
+        <file>img/xiala.png</file>
+        <file>img/addpos.png</file>
     </qresource>
 </RCC>

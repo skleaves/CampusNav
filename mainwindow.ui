@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1233</width>
+    <width>1000</width>
     <height>745</height>
    </rect>
   </property>
@@ -30,54 +30,17 @@
      </size>
     </property>
    </widget>
-   <widget class="QLabel" name="sceneCoord">
+   <widget class="QStackedWidget" name="stackedWidget">
     <property name="geometry">
      <rect>
-      <x>20</x>
+      <x>10</x>
       <y>20</y>
-      <width>211</width>
-      <height>41</height>
+      <width>891</width>
+      <height>51</height>
      </rect>
     </property>
-    <property name="text">
-     <string>none</string>
-    </property>
-   </widget>
-   <widget class="QLabel" name="viewCoord">
-    <property name="geometry">
-     <rect>
-      <x>330</x>
-      <y>20</y>
-      <width>221</width>
-      <height>41</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>none</string>
-    </property>
-   </widget>
-   <widget class="QLabel" name="mapCoord">
-    <property name="geometry">
-     <rect>
-      <x>600</x>
-      <y>20</y>
-      <width>231</width>
-      <height>41</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>none</string>
-    </property>
-   </widget>
-   <widget class="QTextBrowser" name="textLog">
-    <property name="geometry">
-     <rect>
-      <x>930</x>
-      <y>240</y>
-      <width>201</width>
-      <height>451</height>
-     </rect>
-    </property>
+    <widget class="QWidget" name="page"/>
+    <widget class="QWidget" name="page_2"/>
    </widget>
   </widget>
   <widget class="QToolBar" name="toolBar">
@@ -97,6 +60,7 @@
     <bool>false</bool>
    </attribute>
   </widget>
+  <widget class="QStatusBar" name="statusBar"/>
  </widget>
  <customwidgets>
   <customwidget>

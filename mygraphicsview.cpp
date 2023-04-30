@@ -1,45 +1,27 @@
 #include "mygraphicsview.h"
+#include <qmath.h>
 #include <QtDebug>
 #include <iostream>
 
 
 MyGraphicsView::MyGraphicsView(QWidget *parent) : QGraphicsView(parent)
 {
-    connect(this, &MyGraphicsView::read_MapData, this, &MyGraphicsView::on_readMapData);
+    setStyleSheet("padding: 0px; border: 0px;");            //无边框
+    setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);   //隐藏水平条
+    setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);     //隐藏竖条
+    z = new Graphicsviewzoom(this);
+    z->set_modifiers(Qt::NoModifier);
+
     m_map = new Map();
+    scene = new QGraphicsScene();
+
+    connect(this->scene, &QGraphicsScene::selectionChanged, this, &MyGraphicsView::onSelectItem);
+    connect(this, &MyGraphicsView::read_MapData, this, &MyGraphicsView::on_readMapData);
+    connect(this, &MyGraphicsView::selfStateChanged, this, &MyGraphicsView::onSelfStateChanged);
 }
 
 void MyGraphicsView::wheelEvent(QWheelEvent *event)
 {
-    // 获取当前鼠标相对于view的位置
-    QPointF cursorPoint = event->pos();
-    // 获取当前鼠标相对于scene的位置
-    QPointF scenePos = this->mapToScene(QPoint(cursorPoint.x(), cursorPoint.y()));
-    // 获取view的宽高
-    qreal viewWidth = this->viewport()->width();
-    qreal viewHeight = this->viewport()->height();
-    // 获取当前鼠标位置相当于view大小的横纵比
-    qreal hScale = cursorPoint.x() / viewWidth;
-    qreal vScale = cursorPoint.y() / viewHeight;
-
-    if((event->delta() > 0) && (m_scalnum >= 1)) return;
-    if((event->delta() < 0) && (m_scalnum <= m_scaldft))//图像缩小到自适应大小之后就不继续缩小
-    {
-        QMatrix mat;
-        mat.setMatrix(m_scaldft, this->matrix().m12(), this->matrix().m21(), m_scaldft,this->matrix().dx(), this->matrix().dy());
-        this->setMatrix(mat);
-        m_scalnum = m_scaldft;
-    }
-    else {
-        if (event->delta() > 0) setScale(1.1);
-        else setScale(0.9);
-
-        // 将scene坐标转换为放大缩小后的坐标
-        QPointF viewPoint = this->matrix().map(scenePos);
-        // 通过滚动条控制view放大缩小后的展示scene的位置
-        horizontalScrollBar()->setValue(int(viewPoint.x() - viewWidth * hScale));
-        verticalScrollBar()->setValue(int(viewPoint.y() - viewHeight * vScale));
-    }
     QGraphicsView::wheelEvent(event);
 }
 
@@ -53,7 +35,7 @@ void MyGraphicsView::setImage(QImage img)
     map->setFlag(QGraphicsPixmapItem::ItemIsSelectable, true);
     map->setFlag(QGraphicsPixmapItem::ItemIsMovable, false);
     map->setFlag(QGraphicsPixmapItem::ItemSendsGeometryChanges,true);
-    QGraphicsScene *scene = new QGraphicsScene();
+
     //画布添加至场景
     scene->addItem(map);
     scene->setItemIndexMethod(QGraphicsScene::NoIndex);
@@ -68,8 +50,7 @@ void MyGraphicsView::setImage(QImage img)
 //    qreal temp2 = this->height()*1.0/nImgHeight;
 //    if(temp1 > temp2) m_scaldft = temp2;
 //    else m_scaldft = temp1;
-    setScale(m_scaldft);
-
+    this->scale(z->m_scaldft, z->m_scaldft);
 }
 
 void MyGraphicsView::moveBy(QPointF offset)
@@ -78,20 +59,13 @@ void MyGraphicsView::moveBy(QPointF offset)
     double oposx = this->horizontalScrollBar()->value();
     double oposy = this->verticalScrollBar()->value();
 
-    double nposx = oposx - offset.x()*m_scalnum;
-    double nposy = oposy - offset.y()*m_scalnum;
+    double nposx = oposx - offset.x()*z->m_scalnum;
+    double nposy = oposy - offset.y()*z->m_scalnum;
 
     //设置新的滚轮位置
     this->horizontalScrollBar()->setValue(nposx);
     this->verticalScrollBar()->setValue(nposy);
-    this->scene()->update();
-}
-
-void MyGraphicsView::setScale(qreal scale)
-{
-    this->scale(scale, scale);
-    m_scalnum *= scale;
-    qDebug() << m_scalnum;
+    scene->update();
 }
 
 Pos * MyGraphicsView::addPoint(QPointF p)
@@ -106,10 +80,10 @@ Pos * MyGraphicsView::addPoint(QPointF p)
     //qDebug() << pos->id;
     drawPoint(pos);
 
-//    bool isOK;
-//    QString name;
-//    emit getUserInput(isOK, name);
-//    pos->name = name;
+    bool isOK;
+    QString name;
+    emit getUserInput(isOK, name);
+    pos->name.push_back(name);
 
     return pos;
 }
@@ -128,12 +102,11 @@ Pos * MyGraphicsView::addPathPoint(QPointF p)
 
 void MyGraphicsView::addLine(int pid1, int pid2)
 {
-    //todo 需要去重
     if (m_map->m_adjList[pid1].contains(pid2)) {
         qDebug() << "已经存在路径";
         return;
     }
-
+    //todo len在重绘后需要更新
     double len = Edge::dist(m_map->m_all_locs[pid1]->x, m_map->m_all_locs[pid1]->y,
                             m_map->m_all_locs[pid2]->x, m_map->m_all_locs[pid2]->y);
     Edge *edge = new Edge(pid1, pid2, len);
@@ -148,9 +121,7 @@ void MyGraphicsView::drawPoint(Pos *p)
 {
     MyGraphicsItem *pitem = new MyGraphicsItem(0, 0, 40, 40);
     pitem->setFlag(MyGraphicsItem::ItemIsSelectable, true);
-    pitem->setFlag(MyGraphicsItem::ItemIsMovable, true);
     pitem->setFlag(MyGraphicsItem::ItemSendsGeometryChanges, true);
-    pitem->setSelected(false);
     pitem->setZValue(3);
     pitem->setPosition(p);
     pitem->setOpacity(0.5);
@@ -158,9 +129,12 @@ void MyGraphicsView::drawPoint(Pos *p)
     pitem->setPen(QPen(Qt::NoPen));
     pitem->setBrush(QBrush(Qt::blue));
     pitem->setAcceptHoverEvents(true);
-    pitem->setAcceptedMouseButtons(Qt::LeftButton);
     m_all_locs_list.append(pitem);
-    this->scene()->addItem(pitem);
+    scene->addItem(pitem);
+//    pitem->setFlag(MyGraphicsItem::ItemIsSelectable, true);
+//    pitem->setFlag(MyGraphicsItem::ItemIsMovable, true);
+//    pitem->setSelected(false);
+//    pitem->setAcceptedMouseButtons(Qt::LeftButton);
 }
 
 void MyGraphicsView::drawPathPoint(Pos *p)
@@ -173,7 +147,7 @@ void MyGraphicsView::drawPathPoint(Pos *p)
     pitem->setPos(p->x - 15, p->y - 15);
     pitem->setPen(QPen(Qt::NoPen));
     pitem->setBrush(QBrush(Qt::yellow));
-    this->scene()->addItem(pitem);
+    scene->addItem(pitem);
 }
 
 void MyGraphicsView::drawLine(Edge *e)
@@ -189,7 +163,7 @@ void MyGraphicsView::drawLine(Edge *e)
     pen.setStyle(Qt::DashDotLine);
     pen.setJoinStyle(Qt::RoundJoin);
     line->setPen(pen);
-    this->scene()->addItem(line);
+    scene->addItem(line);
 }
 
 void MyGraphicsView::clearPoint()
@@ -197,20 +171,16 @@ void MyGraphicsView::clearPoint()
     Pos::cnt = 0;
     m_map->m_all_locs.clear();
     while (!m_all_locs_list.isEmpty()) {
-        MyGraphicsItem *it = m_all_locs_list.takeLast();
-        //qDebug() << it->getPosition()->id;
-        delete it;
-        //this->viewport()->update();
-        //this->update();
-        //this->show();
+        delete m_all_locs_list.takeLast();
     }
 }
 
 void MyGraphicsView::clearLine()
 {
     m_map->m_all_edges.clear();
-    while (!m_all_edges_list.isEmpty())
-        delete m_all_edges_list.takeFirst();
+    while (!m_all_edges_list.isEmpty()) {
+        delete m_all_edges_list.takeLast();
+    }
 }
 
 void MyGraphicsView::mousePressEvent(QMouseEvent *event)
@@ -218,13 +188,14 @@ void MyGraphicsView::mousePressEvent(QMouseEvent *event)
     if (event->button() == Qt::RightButton) //准备移动画布
     {
         this->setCursor(Qt::PointingHandCursor);
+        isMoving = true;
         m_startpos = mapToScene(event->pos());
     }
     else if (event->button() == Qt::MidButton) {    //恢复初始大小
         QMatrix mat;
-        mat.setMatrix(m_scaldft, this->matrix().m12(), this->matrix().m21(), m_scaldft,this->matrix().dx(), this->matrix().dy());
+        mat.setMatrix(z->m_scaldft, this->matrix().m12(), this->matrix().m21(), z->m_scaldft,this->matrix().dx(), this->matrix().dy());
         this->setMatrix(mat);
-        m_scalnum = m_scaldft;
+        z->m_scalnum = z->m_scaldft;
     }
     else if (event->button() == Qt::LeftButton){
         QPointF p = this->mapToScene(event->pos());
@@ -233,14 +204,14 @@ void MyGraphicsView::mousePressEvent(QMouseEvent *event)
         //如果在添加目标点模式 则尝试添加新目标点
         if (m_state == M_ADD_LOC) {
             QGraphicsItem *item = NULL;
-            item = this->scene()->itemAt(p, this->transform());
+            item = scene->itemAt(p, this->transform());
             if (item != NULL) {
                 //生成透明点 用于检查当前处是否已经有坐标点
                 MyGraphicsItem *pitem = new MyGraphicsItem(0, 0, 40, 40);
                 pitem->setZValue(3);
                 pitem->setOpacity(0);
                 pitem->setPos(p.x() - 20, p.y() - 20);
-                this->scene()->addItem(pitem);
+                scene->addItem(pitem);
                 //qDebug() << pitem->collidingItems().size();
                 if (pitem->collidingItems().size() > 2) {
                     qDebug() << "too close!" << pitem->collidingItems().size();
@@ -259,7 +230,7 @@ void MyGraphicsView::mousePressEvent(QMouseEvent *event)
         else if (m_state == M_ADD_PATHBG) {
             //首先需要点击在一个已有的点作为起点
             QGraphicsItem *item = NULL;
-            item = this->scene()->itemAt(p, this->transform());
+            item = scene->itemAt(p, this->transform());
             if (item != NULL) {
                 if (static_cast<MyGraphicsItem*>(item)->type() != MyGraphicsItem::MyItem)
                     emit printLog("请单击起点");
@@ -272,17 +243,13 @@ void MyGraphicsView::mousePressEvent(QMouseEvent *event)
         }
         //正式添加路径点
         else if (m_state == M_ADD_PATH) {
-            MyGraphicsItem *item = static_cast<MyGraphicsItem*>(this->scene()->itemAt(p, this->transform()));
+            MyGraphicsItem *item = static_cast<MyGraphicsItem*>(scene->itemAt(p, this->transform()));
             if (item != NULL) {
                 if (item->type() == MyGraphicsItem::MyItem) {
                     addLine(m_plast->id, item->getPosition()->id);
-                    //debug 显示一下与新添加点邻接的点
-//                    QLinkedList<int> lk = m_map->m_adjList[item->getPosition()->id];
-//                    while (!lk.isEmpty()) {
-//                        std::cout << lk.takeLast() << " " << std::endl;
-//                    }
                     emit printLog("路径添加成功");
                     m_plast = item->getPosition();
+                    QGraphicsView::mousePressEvent(event);  //必须将事件向下传递
                     return;
                 }
                 Pos * newp = addPathPoint(p);
@@ -291,45 +258,46 @@ void MyGraphicsView::mousePressEvent(QMouseEvent *event)
             }
         }
     }
-
     QGraphicsView::mousePressEvent(event);
 }
 
 
 void MyGraphicsView::mouseReleaseEvent(QMouseEvent *event)
 {
-    //鼠标弹起进行视图移动
     if (event->button() == Qt::RightButton)
     {
-        if (this->m_state == M_DEFAULT) this->setCursor(Qt::ArrowCursor);
-        else if (this->m_state == M_ADD_LOC) this->setCursor(Qt::CrossCursor);
-        m_endpos = mapToScene(event->pos());
-
-        //计算鼠标移动的距离
-        QPointF offset = m_endpos - m_startpos;
-        moveBy(offset);
+        if (this->m_state == M_ADD_LOC) this->setCursor(Qt::CrossCursor);
+        else this->setCursor(Qt::ArrowCursor);
+        isMoving = false;
     }
     QGraphicsView::mouseReleaseEvent(event);
 }
 
 void MyGraphicsView::mouseMoveEvent(QMouseEvent *event)
 {
-
-    QPoint viewPoint = event->pos();
+    viewPoint = event->pos();
     viewCoord->setText(QString::asprintf("view: %d, %d", viewPoint.x(), viewPoint.y()));
     //场景坐标
-    QPointF scenePoint = mapToScene(viewPoint);
+    scenePoint = mapToScene(viewPoint);
     sceneCoord->setText(QString::asprintf("scene: %.0f, %.0f", scenePoint.x(), scenePoint.y()));
     //地图坐标
     QGraphicsItem *item = NULL;
-    item = this->scene()->itemAt(scenePoint, this->transform());
+    item = scene->itemAt(scenePoint, this->transform());
     if (item != NULL) {
         QPointF itemPoint = item->mapFromScene(scenePoint);
         mapCoord->setText(QString::asprintf("item: %.0f, %.0f", itemPoint.x(), itemPoint.y()));
     }
 
+    if (isMoving) {
+        m_endpos = scenePoint;
+        //计算鼠标移动的距离
+        QPointF offset = m_endpos - m_startpos;
+        moveBy(offset);
+        m_startpos = scenePoint;
+    }
+
     if (this->m_state == M_ADD_LOC) {
-        //this->scene()->removeItem(prevItem);
+        //scene->removeItem(prevItem);
         if (prevItem != NULL) {
             delete prevItem;
             prevItem = NULL;
@@ -340,7 +308,22 @@ void MyGraphicsView::mouseMoveEvent(QMouseEvent *event)
         prevItem->setPos(scenePoint.x() - 20, scenePoint.y() - 20);
         prevItem->setPen(QPen(Qt::NoPen));
         prevItem->setBrush(QBrush(Qt::blue));
-        this->scene()->addItem(prevItem);
+        scene->addItem(prevItem);
+    }
+    else if (this->m_state == M_ADD_PATH) {
+        if (prevLine != NULL) {
+            delete prevLine;
+            prevLine = NULL;
+        }
+        prevLine = new QGraphicsLineItem(m_plast->x, m_plast->y, scenePoint.x(), scenePoint.y());
+        prevLine->setZValue(1);
+        prevLine->setOpacity(0.5);
+        QPen pen(Qt::blue);
+        pen.setWidth(10);
+        pen.setStyle(Qt::DashDotLine);
+        pen.setJoinStyle(Qt::RoundJoin);
+        prevLine->setPen(pen);
+        scene->addItem(prevLine);
     }
 
 
@@ -357,6 +340,7 @@ void MyGraphicsView::keyPressEvent(QKeyEvent *event)
         if (this->m_state == M_ADD_LOC) {
             //需要保证有点
             if (this->m_all_locs_list.size() > 0) {
+                //qDebug() << "有点";
                 int pid = m_all_locs_list.back()->getPosition()->id;
                 //只有在没有边的情况下才允许撤销
                 if (this->m_map->m_adjList[pid].size() == 1) {
@@ -372,7 +356,19 @@ void MyGraphicsView::keyPressEvent(QKeyEvent *event)
                 }
             }
         }
+        else if (this->m_state == M_ADD_PATH) {
+            //需要保证有边
+            if (this->m_all_edges_list.size() > 0) {
+                //取上一条路径结束点的id
+                int lastid = m_map->m_all_edges.back()->end_pos;
+                //删除路径
 
+                //如果不是地点 则结束点也需删除
+                if (!m_map->m_all_locs[lastid]->isBuild) {
+
+                }
+            }
+        }
 
         //qDebug() << "按下了撤销";
     }
@@ -388,13 +384,18 @@ void MyGraphicsView::keyPressEvent(QKeyEvent *event)
     }
     else if (event->matches(QKeySequence::Cancel)) {
         //qDebug() << "按下了取消";
-        this->m_state = M_DEFAULT;
-        if (prevItem != NULL) {
-            delete prevItem;
-            prevItem = NULL;
+        if (m_state == M_ADD_PATH) {
+            int olds = this->m_state;
+            m_state = M_ADD_PATHBG;
+            emit selfStateChanged(olds, M_ADD_PATHBG);
+            emit stateChanged(M_ADD_PATHBG);
         }
-        //this->scene()->removeItem(prevItem);
-        emit stateChanged(M_DEFAULT);
+        else {
+            int olds = this->m_state;
+            this->m_state = M_DEFAULT;
+            emit selfStateChanged(olds, M_DEFAULT);
+            emit stateChanged(M_DEFAULT);
+        }
     }
     //debug 显示邻接表
     else if (event->matches(QKeySequence::SelectAll)) {
@@ -413,8 +414,6 @@ void MyGraphicsView::keyPressEvent(QKeyEvent *event)
 
 void MyGraphicsView::on_readMapData()
 {
-    qDebug() << m_map->m_all_locs.isEmpty();
-    qDebug() << m_map->m_all_edges.isEmpty();
     for (auto p : m_map->m_all_locs) {
         if (p->isBuild == true) drawPoint(p);
         else drawPathPoint(p);
@@ -422,29 +421,41 @@ void MyGraphicsView::on_readMapData()
     for (auto e : m_map->m_all_edges) {
         drawLine(e);
     }
+    emit selfStateChanged(M_DEFAULT, M_DEFAULT);
 }
 
 void MyGraphicsView::onActionNormal(bool checked)
 {
+    int olds = this->m_state;
     if (checked == true) this->m_state = M_DEFAULT;
-    this->setCursor(Qt::ArrowCursor);
-    if (prevItem != NULL) {
-        delete prevItem;
-        prevItem = NULL;
-    }
-    //this->scene()->removeItem(prevItem);
+    emit selfStateChanged(olds, M_DEFAULT);
+}
+
+void MyGraphicsView::onActionModPos(bool checked)
+{
+    int olds = this->m_state;
+    if (checked == true) this->m_state = M_MOD_LOC;
+    emit selfStateChanged(olds, M_MOD_LOC);
 }
 
 void MyGraphicsView::onActionAddPos(bool checked)
 {
-    if (checked == true) this->m_state = M_ADD_LOC;
-    this->setCursor(Qt::CrossCursor);
+    int olds = this->m_state;
+    if (checked == true) {
+        this->m_state = M_ADD_LOC;
+        emit selfStateChanged(olds, M_ADD_LOC);
+    }
+    else if (checked == false) {
+        this->m_state = M_MOD_LOC;
+        emit selfStateChanged(olds, M_MOD_LOC);
+    }
 }
 
 void MyGraphicsView::onActionAddPath(bool checked)
 {
+    int olds = this->m_state;
     if (checked == true) this->m_state = M_ADD_PATHBG;
-    this->setCursor(Qt::PointingHandCursor);
+    emit selfStateChanged(olds, M_ADD_PATHBG);
 }
 
 void MyGraphicsView::onActionSave()
@@ -465,7 +476,8 @@ void MyGraphicsView::onActionSave()
     for (auto e : m_map->m_all_edges) {
         out << *e;
     }
-    qDebug() << file.flush() << m_map->m_all_locs.size() << m_map->m_all_edges.size();
+    out << m_map->m_adjList;
+    //qDebug() << file.flush() << m_map->m_all_locs.size() << m_map->m_all_edges.size();
 }
 
 void MyGraphicsView::onActionLoad()
@@ -494,6 +506,7 @@ void MyGraphicsView::onActionLoad()
         in >> *e;
         m_map->m_all_edges.push_back(e);
     }
+    in >> m_map->m_adjList;
     emit read_MapData();
 }
 
@@ -502,4 +515,103 @@ void MyGraphicsView::onActionClear()
     clearPoint();
     clearLine();
     this->m_map->m_adjList.clear();
+}
+
+void MyGraphicsView::onSelfStateChanged(int olds, int news)
+{
+    //如果新状态是默认
+    if (news == M_DEFAULT) {
+        for (auto p : m_all_locs_list) {
+            p->setFlag(MyGraphicsItem::ItemIsMovable, false);
+            if (!p->getPosition()->isBuild) p->hide();
+        }
+        for (auto e : m_all_edges_list) {
+            e->hide();
+        }
+        this->setCursor(Qt::ArrowCursor);
+        if (prevItem != NULL) {
+            delete prevItem;
+            prevItem = NULL;
+        }
+        if (prevLine != NULL) {
+            delete prevLine;
+            prevLine = NULL;
+        }
+    }
+    else if (news == M_MOD_LOC || news == M_ADD_LOC || news == M_ADD_PATHBG || news == M_ADD_PATH) {
+        if (olds == M_DEFAULT) {
+            if (m_all_locs_list.size() > 0) {
+                for (auto p : m_all_locs_list) {
+                    if (!p->getPosition()->isBuild) {
+                        p->show();
+                        p->setFlag(MyGraphicsItem::ItemIsMovable, true);
+                        p->setAcceptedMouseButtons(Qt::LeftButton);
+                    }
+                }
+            }
+            if (m_all_edges_list.size() > 0) {
+                for (auto e : m_all_edges_list) {
+                    e->show();
+                }
+            }
+        }
+
+        if (news == M_MOD_LOC) {
+            this->setCursor(Qt::ArrowCursor);
+            if (prevItem != NULL) {
+                delete prevItem;
+                prevItem = NULL;
+            }
+            if (prevLine != NULL) {
+                delete prevLine;
+                prevLine = NULL;
+            }
+        }
+        else if (news == M_ADD_LOC) {
+            this->setCursor(Qt::CrossCursor);
+            if (prevLine != NULL) {
+                delete prevLine;
+                prevLine = NULL;
+            }
+        }
+        else if (news == M_ADD_PATHBG) {
+            this->setCursor(Qt::PointingHandCursor);
+            if (prevItem != NULL) {
+                delete prevItem;
+                prevItem = NULL;
+            }
+            if (prevLine != NULL) {
+                delete prevLine;
+                prevLine = NULL;
+            }
+        }
+    }
+}
+
+void MyGraphicsView::onSelectItem()
+{
+    QList<QGraphicsItem *> items = this->scene->selectedItems();
+    if (items.size() == 0) return;
+    QVector<QString> name;
+    if (items.first()->type() == MyGraphicsItem::MyItem) {
+        MyGraphicsItem *p = static_cast<MyGraphicsItem*>(items.first());
+        selectedItem = p;
+        name = p->getPosition()->name;
+        emit showSelectedPos(name);
+
+        QString str;
+        if (name.size() > 0) str.append(name.takeFirst());
+        if (name.size() > 0) {
+            for (auto s : name) {
+                str.append(" | ");
+                str.append(s);
+            }
+        }
+        currentPos->setText(str);
+    }
+    else {
+        selectedItem = NULL;
+        emit showSelectedPos(name);
+        currentPos->setText("");
+    }
 }
