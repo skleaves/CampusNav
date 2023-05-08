@@ -90,6 +90,7 @@ MainWindow::MainWindow(QWidget *parent)
     //绑定各个控件对应的信号与槽函数
     connect(normal_action, &QAction::triggered, this, &MainWindow::onActionNormal);
     connect(add_loc_action, &QAction::triggered, this, &MainWindow::onActionPos);
+    connect(add_path_action, &QAction::triggered, this, &MainWindow::onActionPath);
 
     connect(normal_action, &QAction::triggered, this->ui->graphicsView, &MyGraphicsView::onActionNormal);
     connect(add_loc_action, &QAction::triggered, this->ui->graphicsView, &MyGraphicsView::onActionModPos);
@@ -100,8 +101,11 @@ MainWindow::MainWindow(QWidget *parent)
 
     connect(this->ui->graphicsView, &MyGraphicsView::stateChanged, this, &MainWindow::onStateChanged);
     connect(this->ui->graphicsView, &MyGraphicsView::getUserInput, this, &MainWindow::onGetUserInput);
-    connect(this->ui->graphicsView, &MyGraphicsView::read_MapData, this, &MainWindow::onReadMap);
+    connect(this->ui->graphicsView, &MyGraphicsView::posChanged, this, &MainWindow::onPosChanged);
     connect(this->ui->graphicsView, &MyGraphicsView::showSelectedPos, this, &MainWindow::onShowSelectedPos);
+
+    connect(this->findPathWidget, &FindPathWidget::pushBtnFindPressed, this, &MainWindow::onPushBtnFindPressed);
+    connect(this->findPathWidget, &FindPathWidget::pushBtnClearPressed, this, &MainWindow::onPushBtnClearPressed);
 
     connect(this->posWidget, &PosWidget::btnAddToggled, this->ui->graphicsView, &MyGraphicsView::onActionAddPos);
     connect(this->posWidget, &PosWidget::lineNameEdited, this, &MainWindow::onlineNameEdited);
@@ -114,23 +118,35 @@ MainWindow::~MainWindow()
 
 void MainWindow::onActionNormal(bool checked)
 {
-    if (checked) this->ui->stackedWidget->setCurrentWidget(findPathWidget);
+    if (checked) {
+        this->ui->stackedWidget->setCurrentWidget(findPathWidget);
+        posWidget->setBtnAdd(false);
+    }
 }
 
 void MainWindow::onActionPos(bool checked)
 {
-    if (checked) this->ui->stackedWidget->setCurrentWidget(posWidget);
+    if (checked) {
+        this->ui->stackedWidget->setCurrentWidget(posWidget);
+        posWidget->setBtnAdd(false);
+    }
 }
 
 void MainWindow::onActionPath(bool checked)
 {
-
+    if (checked) {
+        //this->ui->stackedWidget
+        posWidget->setBtnAdd(false);
+    }
 }
 
 
 
-void MainWindow::onReadMap()
+void MainWindow::onPosChanged()
 {
+    //先清空现有的map
+    findPathWidget->nameToId.clear();
+
     QStringList strList;
 
     for (auto p : ui->graphicsView->m_map->m_all_locs) {
@@ -142,13 +158,12 @@ void MainWindow::onReadMap()
                 str.append(*it);
             }
             strList.append(str);
+            findPathWidget->nameToId.insert(str, p->id);
         }
     }
     strList.sort();
 
-    if (ui->stackedWidget->currentWidget() == findPathWidget) {
-        findPathWidget->loadItems(strList);
-    }
+    findPathWidget->loadItems(strList);
 }
 
 void MainWindow::onStateChanged(int state)
@@ -169,6 +184,11 @@ void MainWindow::onStateChanged(int state)
     case 3:     //添加路径
         this->ui->graphicsView->setCursor(Qt::PointingHandCursor);
         add_path_action->setChecked(true);
+        break;
+    case 4:     //编辑地点
+        this->ui->graphicsView->setCursor(Qt::ArrowCursor);
+        add_loc_action->setChecked(true);
+        posWidget->setBtnAdd(false);
         break;
     }
 }
@@ -204,6 +224,20 @@ void MainWindow::onlineNameEdited(QVector<QString> name)
         ui->graphicsView->currentPos->setText(str);
 
         //TODO 需要更新到下拉列表
-        onReadMap();
+        onPosChanged();
     }
+}
+
+void MainWindow::onPushBtnFindPressed(int start, int end)
+{
+    ui->graphicsView->clearPathLine();
+    qDebug() << "计算最短路";
+    int len = ui->graphicsView->m_map->m_adjList.size();
+    if (ui->graphicsView->m_map->dijkstra(start, end, len)) qDebug() << "计算成功";
+    ui->graphicsView->showPath(start, end);
+}
+
+void MainWindow::onPushBtnClearPressed()
+{
+    ui->graphicsView->clearPathLine();
 }

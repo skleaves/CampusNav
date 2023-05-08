@@ -31,16 +31,20 @@ public:
     void drawPoint(Pos *p);
     void drawPathPoint(Pos *p);
     void drawLine(Edge *e);
+    void drawPathLine(int start, int end);
+
+    void showPath(int start, int end);
 
     void clearPoint();
     void clearLine();
+    void clearPathLine();
 
     MyGraphicsItem *selectedItem;
 
 private:
     enum {
         M_DEFAULT,    //默认 浏览模式
-        M_ADD_LOC,    //添加目的点
+        M_ADD_LOC,    //添加地点
         M_ADD_PATHBG, //准备添加路径
         M_ADD_PATH,
         M_MOD_LOC     //编辑地点模式
@@ -59,11 +63,10 @@ private:
     QPointF m_endpos;           //鼠标结束点
     Pos *m_plast;
 
-
-
     QStack<Pos *> m_phistory;      //用于撤销时暂存点的历史记录
     QLinkedList<MyGraphicsItem *> m_all_locs_list;       //所有路径点图元的链表 用于删除
     QLinkedList<QGraphicsLineItem *> m_all_edges_list;   //所有边图元的链表 用于删除
+    QLinkedList<QGraphicsLineItem *> m_path_list;        //画出的路径图元的链表 用于删除
 
 private:
     void wheelEvent(QWheelEvent *event) Q_DECL_OVERRIDE;
@@ -79,6 +82,7 @@ public:
 //信号
 signals:
     void read_MapData();
+    void posChanged();
     void stateChanged(int state);
     void selfStateChanged(int olds, int news);
     void printLog(QString str);

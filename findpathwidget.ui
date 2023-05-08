@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>729</width>
+    <width>888</width>
     <height>121</height>
    </rect>
   </property>
@@ -63,6 +63,32 @@
    </property>
    <property name="text">
     <string>起点</string>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="pushBtnFind">
+   <property name="geometry">
+    <rect>
+     <x>660</x>
+     <y>10</y>
+     <width>81</width>
+     <height>28</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>查询</string>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="pushBtnClear">
+   <property name="geometry">
+    <rect>
+     <x>760</x>
+     <y>10</y>
+     <width>81</width>
+     <height>28</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>清除</string>
    </property>
   </widget>
  </widget>

@@ -8,6 +8,8 @@ PosWidget::PosWidget(QWidget *parent) :
     ui->setupUi(this);
     ui->pushBtnAdd->setIcon(QIcon(":/img/addpos.png"));
     ui->pushBtnAdd->setCheckable(true);
+    ui->pushBtnAdd->setFocusPolicy(Qt::NoFocus);
+    ui->pushBtnDel->setFocusPolicy(Qt::NoFocus);
 
     connect(ui->pushBtnAdd, &QPushButton::toggled, this, &PosWidget::onBtnAdd);
     connect(ui->line1st, &QLineEdit::editingFinished, this, &PosWidget::onLineEditingFinished);
@@ -35,6 +37,12 @@ void PosWidget::showPosName(QVector<QString> name)
         str.append(" ");
     }
     ui->line2nd->setText(str);
+}
+
+void PosWidget::setBtnAdd(bool checked)
+{
+    if (checked) ui->pushBtnAdd->setChecked(true);
+    else ui->pushBtnAdd->setChecked(false);
 }
 
 void PosWidget::onBtnAdd(bool checked)

@@ -17,7 +17,7 @@ Graphicsviewzoom::Graphicsviewzoom(QGraphicsView* view)
 void Graphicsviewzoom::gentle_zoom(double factor) {
   _view->scale(factor, factor);
   m_scalnum *= factor;
-  qDebug() << m_scalnum;
+  //qDebug() << m_scalnum;
   _view->centerOn(target_scene_pos);
   QPointF delta_viewport_pos = target_viewport_pos - QPointF(_view->viewport()->width() / 2.0,
                                                              _view->viewport()->height() / 2.0);

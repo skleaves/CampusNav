@@ -6,8 +6,9 @@
 #include <QVector>
 #include <QLinkedList>
 #include <QDebug>
-#include <unordered_map>
+#include <QMap>
 
+typedef QPair<int, double> QPairI;
 
 struct Pos
 {
@@ -104,11 +105,14 @@ public:
 public:
     QVector<Pos *> m_all_locs;          //记录所有路径点
     QVector<Edge *> m_all_edges;
-    //邻接表 记录节点id
-    QVector<QLinkedList<int>> m_adjList;
-    //哈希表 记录两点之间是否有边及边的权值
-    //unordered_map<>
+    //邻接表
+    QVector<QLinkedList<QPairI>> m_adjList;
 
+    QMap<int, QVector<double>> dist_cache; //距离数组缓存
+    QMap<int, QVector<int>> path_cache; //路径数组缓存
+
+    bool dijkstra(int start, int end, int n);
+    //int[] spfa(int st, int ed);
 };
 
 #endif // MAP_H

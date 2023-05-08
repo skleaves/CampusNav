@@ -17,6 +17,8 @@ public:
 
     void showPosName(QVector<QString> name);
 
+    void setBtnAdd(bool checked);
+
 private:
     Ui::PosWidget *ui;
 

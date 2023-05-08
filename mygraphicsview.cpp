@@ -32,7 +32,7 @@ void MyGraphicsView::setImage(QImage img)
     QPixmap Images = QPixmap::fromImage(img);
     QGraphicsPixmapItem *map = new QGraphicsPixmapItem(Images);
 
-    map->setFlag(QGraphicsPixmapItem::ItemIsSelectable, true);
+    map->setFlag(QGraphicsPixmapItem::ItemIsSelectable, false);
     map->setFlag(QGraphicsPixmapItem::ItemIsMovable, false);
     map->setFlag(QGraphicsPixmapItem::ItemSendsGeometryChanges,true);
 
@@ -74,8 +74,8 @@ Pos * MyGraphicsView::addPoint(QPointF p)
     //if (!isOK) return NULL;
     Pos *pos = new Pos(p.x(), p.y(), true);
     m_map->m_all_locs.push_back(pos);
-    QLinkedList<int> lk = QLinkedList<int>();
-    lk.push_back(pos->id);          //初始化新节点链表头
+    QLinkedList<QPairI> lk = QLinkedList<QPairI>();
+    lk.push_back(QPairI(pos->id, 0));          //初始化新节点链表头
     m_map->m_adjList.push_back(lk);
     //qDebug() << pos->id;
     drawPoint(pos);
@@ -83,7 +83,12 @@ Pos * MyGraphicsView::addPoint(QPointF p)
     bool isOK;
     QString name;
     emit getUserInput(isOK, name);
+    if (name == "") {
+        name = QString("地点%1").arg(pos->id);
+    }
     pos->name.push_back(name);
+
+    emit posChanged();
 
     return pos;
 }
@@ -92,8 +97,8 @@ Pos * MyGraphicsView::addPathPoint(QPointF p)
 {
     Pos *pos = new Pos(p.x(), p.y(), false);
     m_map->m_all_locs.push_back(pos);
-    QLinkedList<int> lk = QLinkedList<int>();
-    lk.push_back(pos->id);          //初始化新节点链表头
+    QLinkedList<QPairI> lk = QLinkedList<QPairI>();
+    lk.push_back(QPairI(pos->id, 0));          //初始化新节点链表头
     m_map->m_adjList.push_back(lk);
     //qDebug() << pos->id;
     drawPathPoint(pos);
@@ -102,18 +107,20 @@ Pos * MyGraphicsView::addPathPoint(QPointF p)
 
 void MyGraphicsView::addLine(int pid1, int pid2)
 {
-    if (m_map->m_adjList[pid1].contains(pid2)) {
-        qDebug() << "已经存在路径";
-        return;
+    for (auto i : m_map->m_adjList[pid1]) {
+        if (i.first == pid2) {
+            qDebug() << "已经存在路径";
+            return;
+        }
     }
     //todo len在重绘后需要更新
     double len = Edge::dist(m_map->m_all_locs[pid1]->x, m_map->m_all_locs[pid1]->y,
                             m_map->m_all_locs[pid2]->x, m_map->m_all_locs[pid2]->y);
     Edge *edge = new Edge(pid1, pid2, len);
     m_map->m_all_edges.push_back(edge);
-    //在两个节点间建立无向边 权值待添加
-    m_map->m_adjList[pid1].push_back(pid2);
-    m_map->m_adjList[pid2].push_back(pid1);
+    //在两个节点间建立无向边
+    m_map->m_adjList[pid1].push_back(QPairI(pid2, len));
+    m_map->m_adjList[pid2].push_back(QPairI(pid1, len));
     drawLine(edge);
 }
 
@@ -166,6 +173,51 @@ void MyGraphicsView::drawLine(Edge *e)
     scene->addItem(line);
 }
 
+void MyGraphicsView::drawPathLine(int start, int end)
+{
+    int x1 = m_map->m_all_locs[start]->x, y1 = m_map->m_all_locs[start]->y;
+    int x2 = m_map->m_all_locs[end]->x, y2 = m_map->m_all_locs[end]->y;
+    QGraphicsLineItem *line = new QGraphicsLineItem(x1, y1, x2, y2);
+    m_path_list.append(line);
+    line->setZValue(2);
+    QPen pen(Qt::red);
+    pen.setWidth(20);
+    pen.setStyle(Qt::SolidLine);
+    pen.setJoinStyle(Qt::RoundJoin);
+    line->setPen(pen);
+    scene->addItem(line);
+}
+
+void MyGraphicsView::showPath(int start, int end)
+{
+    QVector<int> p;
+    if (m_map->dist_cache.contains(start)) {
+        QVector<int> path = m_map->path_cache[start];
+//        qDebug() << "有start";
+//        for (int i = 0; i < path.size(); i ++) {
+//            qDebug() << i << path[i];
+//        }
+        p.append(end);
+        for (int i = end; i != start; ) {
+            p.append(path[i]);
+            i = path[i];
+        }
+    }
+    else return;
+
+//    while (p.size() > 0) {
+//        qDebug() << p.takeLast() << ">";
+//    }
+
+    Q_ASSERT(p.size() >= 2);
+
+    for (int i = 0; i < p.size() - 1; i ++) {
+        int s = p[i], e = p[i+1];
+        drawPathLine(s, e);
+    }
+
+}
+
 void MyGraphicsView::clearPoint()
 {
     Pos::cnt = 0;
@@ -180,6 +232,14 @@ void MyGraphicsView::clearLine()
     m_map->m_all_edges.clear();
     while (!m_all_edges_list.isEmpty()) {
         delete m_all_edges_list.takeLast();
+    }
+    clearPathLine();
+}
+
+void MyGraphicsView::clearPathLine()
+{
+    while (!m_path_list.isEmpty()) {
+        delete m_path_list.takeLast();
     }
 }
 
@@ -383,12 +443,18 @@ void MyGraphicsView::keyPressEvent(QKeyEvent *event)
         //qDebug() << "按下了重做";
     }
     else if (event->matches(QKeySequence::Cancel)) {
-        //qDebug() << "按下了取消";
+        qDebug() << "按下了取消";
         if (m_state == M_ADD_PATH) {
             int olds = this->m_state;
             m_state = M_ADD_PATHBG;
             emit selfStateChanged(olds, M_ADD_PATHBG);
             emit stateChanged(M_ADD_PATHBG);
+        }
+        else if (m_state == M_ADD_LOC) {
+            int olds = this->m_state;
+            m_state = M_MOD_LOC;
+            emit selfStateChanged(olds, M_MOD_LOC);
+            emit stateChanged(M_MOD_LOC);
         }
         else {
             int olds = this->m_state;
@@ -402,11 +468,31 @@ void MyGraphicsView::keyPressEvent(QKeyEvent *event)
         qDebug() << "显示邻接表";
         for (auto lk : this->m_map->m_adjList) {
             while (!lk.isEmpty()) {
-                std::cout << lk.first() << "->";
+                std::cout << lk.first().first << "," << lk.first().second << "->";
                 lk.pop_front();
             }
             std::cout << std::endl;
         }
+
+        /*
+        if (m_map->dist_cache.contains(0)) {
+            std::cout << m_map->dist_cache[0][end] << std::endl;
+            QVector<int> path = m_map->path_cache[0];
+            QVector<int> p;
+            p.append(end);
+            for (int i = end; i > 0; ) {
+                p.append(path[i]);
+                i = path[i];
+            }
+            while (p.size() > 0) {
+                std::cout << p.takeLast() << ">";
+            }
+//            while (path.size() > 0) {
+//                std::cout << path.takeFirst() << std::endl;
+//            }
+            std::cout << std::endl;
+        }
+        */
     }
 
     QGraphicsView::keyPressEvent(event);
@@ -421,6 +507,7 @@ void MyGraphicsView::on_readMapData()
     for (auto e : m_map->m_all_edges) {
         drawLine(e);
     }
+    clearPathLine();
     emit selfStateChanged(M_DEFAULT, M_DEFAULT);
 }
 
@@ -508,12 +595,14 @@ void MyGraphicsView::onActionLoad()
     }
     in >> m_map->m_adjList;
     emit read_MapData();
+    emit posChanged();
 }
 
 void MyGraphicsView::onActionClear()
 {
     clearPoint();
     clearLine();
+
     this->m_map->m_adjList.clear();
 }
 
@@ -554,6 +643,8 @@ void MyGraphicsView::onSelfStateChanged(int olds, int news)
                     e->show();
                 }
             }
+            //清除当前显示出的路径
+            clearPathLine();
         }
 
         if (news == M_MOD_LOC) {

@@ -33,15 +33,20 @@ private:
     QAction *normal_action, *add_loc_action, *add_path_action;
 
 
+
+
 public slots:
     void onActionNormal(bool checked);
     void onActionPos(bool checked);
     void onActionPath(bool checked);
-    void onReadMap();
+    void onPosChanged();
     void onStateChanged(int state);
     void onGetUserInput(bool &isOK, QString &str);
     void onShowSelectedPos(QVector<QString> name);
     void onlineNameEdited(QVector<QString> name);
+
+    void onPushBtnFindPressed(int start, int end);
+    void onPushBtnClearPressed();
 
 };
 #endif // MAINWINDOW_H

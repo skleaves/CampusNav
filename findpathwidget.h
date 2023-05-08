@@ -19,8 +19,21 @@ public:
 
     void loadItems(QStringList str);
 
+    QMap<QString, int> nameToId;
+
 private:
     Ui::FindPathWidget *ui;
+
+
+
+public slots:
+    void onPushBtnFindClicked();
+    void onPushBtnClearClicked();
+
+signals:
+    void pushBtnFindPressed(int start, int end);
+    void pushBtnClearPressed();
+
 };
 
 #endif // FINDPATHWIDGET_H
