@@ -14,7 +14,9 @@ struct Pos
 {
     int x, y, id;
     bool isBuild;
-    QVector<QString> name; //地点名
+
+    QString name; //地点名
+    QStringList otherName; //地点别名
 
     static int cnt;
     Pos(int x = 0, int y = 0, bool isBuild = false) {
@@ -37,11 +39,11 @@ struct Pos
         return false;
     }
     friend QDataStream &operator<<(QDataStream &out, const Pos &p) {
-        out << p.x << p.y << p.id << p.isBuild << p.name;
+        out << p.x << p.y << p.id << p.isBuild << p.name << p.otherName;
         return out;
     }
     friend QDataStream &operator>>(QDataStream &in, Pos &p) {
-        in >> p.x >> p.y >> p.id >> p.isBuild >> p.name;
+        in >> p.x >> p.y >> p.id >> p.isBuild >> p.name >> p.otherName;
         return in;
     }
 };
@@ -103,15 +105,17 @@ public:
     Map();
 
 public:
+
     QVector<Pos *> m_all_locs;          //记录所有路径点
     QVector<Edge *> m_all_edges;
     //邻接表
     QVector<QLinkedList<QPairI>> m_adjList;
 
-    QMap<int, QVector<double>> dist_cache; //距离数组缓存
-    QMap<int, QVector<int>> path_cache; //路径数组缓存
+    QMap<int, int> idToIdx;
+    QMap<int, QVector<QPairI>> dist_cache; //距离数组缓存
+    QMap<int, QVector<QPair<int, int>>> path_cache; //路径数组缓存
 
-    bool dijkstra(int start, int end, int n);
+    void dijkstra(int startID, int n);
     //int[] spfa(int st, int ed);
 };
 

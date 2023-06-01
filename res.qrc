@@ -1,13 +1,16 @@
 <RCC>
     <qresource prefix="/">
         <file>img/map.png</file>
-        <file>img/path.png</file>
         <file>img/pos.png</file>
         <file>img/baocun.png</file>
         <file>img/shuaxin.png</file>
         <file>img/normal.png</file>
-        <file>img/clear.png</file>
         <file>img/xiala.png</file>
         <file>img/addpos.png</file>
+        <file>img/delpos.png</file>
+        <file>img/goto.png</file>
+        <file>img/clear.png</file>
+        <file>img/path.png</file>
+        <file>img/bianji.png</file>
     </qresource>
 </RCC>

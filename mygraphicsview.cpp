@@ -77,6 +77,7 @@ Pos * MyGraphicsView::addPoint(QPointF p)
     QLinkedList<QPairI> lk = QLinkedList<QPairI>();
     lk.push_back(QPairI(pos->id, 0));          //初始化新节点链表头
     m_map->m_adjList.push_back(lk);
+    m_map->idToIdx.insert(pos->id, m_map->m_all_locs.size() - 1);
     //qDebug() << pos->id;
     drawPoint(pos);
 
@@ -86,7 +87,7 @@ Pos * MyGraphicsView::addPoint(QPointF p)
     if (name == "") {
         name = QString("地点%1").arg(pos->id);
     }
-    pos->name.push_back(name);
+    pos->name = name;
 
     emit posChanged();
 
@@ -100,27 +101,38 @@ Pos * MyGraphicsView::addPathPoint(QPointF p)
     QLinkedList<QPairI> lk = QLinkedList<QPairI>();
     lk.push_back(QPairI(pos->id, 0));          //初始化新节点链表头
     m_map->m_adjList.push_back(lk);
+    m_map->idToIdx.insert(pos->id, m_map->m_all_locs.size() - 1);
     //qDebug() << pos->id;
     drawPathPoint(pos);
     return pos;
 }
 
-void MyGraphicsView::addLine(int pid1, int pid2)
+void MyGraphicsView::addLine(Pos * a, Pos * b)
 {
-    for (auto i : m_map->m_adjList[pid1]) {
-        if (i.first == pid2) {
-            qDebug() << "已经存在路径";
-            return;
+    for (auto adjs : m_map->m_adjList) {
+        if (adjs.first().first == a->id) {
+            for (auto p : adjs) {
+                if (p.first == b->id) {
+                    qDebug() << "已经存在路径";
+                    return;
+                }
+            }
         }
     }
+
     //todo len在重绘后需要更新
-    double len = Edge::dist(m_map->m_all_locs[pid1]->x, m_map->m_all_locs[pid1]->y,
-                            m_map->m_all_locs[pid2]->x, m_map->m_all_locs[pid2]->y);
-    Edge *edge = new Edge(pid1, pid2, len);
+    double len = Edge::dist(a->x, a->y, b->x, b->y);
+    Edge *edge = new Edge(a->id, b->id, len);
     m_map->m_all_edges.push_back(edge);
     //在两个节点间建立无向边
-    m_map->m_adjList[pid1].push_back(QPairI(pid2, len));
-    m_map->m_adjList[pid2].push_back(QPairI(pid1, len));
+    for (auto it = m_map->m_adjList.begin(); it != m_map->m_adjList.end(); it ++) {
+        if ((*it).first().first == a->id) {
+            it->push_back(QPairI(b->id, len));
+        }
+        else if ((*it).first().first == b->id) {
+            it->push_back(QPairI(a->id, len));
+        }
+    }
     drawLine(edge);
 }
 
@@ -148,6 +160,7 @@ void MyGraphicsView::drawPathPoint(Pos *p)
 {
     MyGraphicsItem *pitem = new MyGraphicsItem(0, 0, 30, 30);
     m_all_locs_list.append(pitem);
+    pitem->setFlag(MyGraphicsItem::ItemIsSelectable, true);
     pitem->setZValue(3);
     pitem->setPosition(p);
     pitem->setOpacity(0.5);
@@ -159,8 +172,9 @@ void MyGraphicsView::drawPathPoint(Pos *p)
 
 void MyGraphicsView::drawLine(Edge *e)
 {
-    int x1 = m_map->m_all_locs[e->start_pos]->x, x2 = m_map->m_all_locs[e->end_pos]->x;
-    int y1 = m_map->m_all_locs[e->start_pos]->y, y2 = m_map->m_all_locs[e->end_pos]->y;
+    int st = m_map->idToIdx[e->start_pos], ed = m_map->idToIdx[e->end_pos];
+    int x1 = m_map->m_all_locs[st]->x, x2 = m_map->m_all_locs[ed]->x;
+    int y1 = m_map->m_all_locs[st]->y, y2 = m_map->m_all_locs[ed]->y;
     //qDebug() << "add path at" << x1 << y1 << "and" << x2 << y2;
     QGraphicsLineItem *line = new QGraphicsLineItem(x1, y1, x2, y2);
     m_all_edges_list.append(line);
@@ -175,8 +189,9 @@ void MyGraphicsView::drawLine(Edge *e)
 
 void MyGraphicsView::drawPathLine(int start, int end)
 {
-    int x1 = m_map->m_all_locs[start]->x, y1 = m_map->m_all_locs[start]->y;
-    int x2 = m_map->m_all_locs[end]->x, y2 = m_map->m_all_locs[end]->y;
+    int st = m_map->idToIdx[start], ed = m_map->idToIdx[end];
+    int x1 = m_map->m_all_locs[st]->x, x2 = m_map->m_all_locs[ed]->x;
+    int y1 = m_map->m_all_locs[st]->y, y2 = m_map->m_all_locs[ed]->y;
     QGraphicsLineItem *line = new QGraphicsLineItem(x1, y1, x2, y2);
     m_path_list.append(line);
     line->setZValue(2);
@@ -192,22 +207,26 @@ void MyGraphicsView::showPath(int start, int end)
 {
     QVector<int> p;
     if (m_map->dist_cache.contains(start)) {
-        QVector<int> path = m_map->path_cache[start];
+        int endidx = m_map->idToIdx[end];
+        QVector<QPairI> dist = m_map->dist_cache[start];
+        //qDebug() << dist;
+        if (fabs(dist[endidx].second - 1e9) < 1e-3) return;
+        QVector<QPair<int, int>> path = m_map->path_cache[start];
 //        qDebug() << "有start";
 //        for (int i = 0; i < path.size(); i ++) {
 //            qDebug() << i << path[i];
 //        }
+//        return;
         p.append(end);
-        for (int i = end; i != start; ) {
-            p.append(path[i]);
-            i = path[i];
+
+        for (int i = endidx; path[i].second != -1;) {
+            p.append(path[i].second);   //上一个点的id
+            i = m_map->idToIdx[path[i].second];
         }
+        //qDebug() << p;
+        //return;
     }
     else return;
-
-//    while (p.size() > 0) {
-//        qDebug() << p.takeLast() << ">";
-//    }
 
     Q_ASSERT(p.size() >= 2);
 
@@ -292,11 +311,14 @@ void MyGraphicsView::mousePressEvent(QMouseEvent *event)
             QGraphicsItem *item = NULL;
             item = scene->itemAt(p, this->transform());
             if (item != NULL) {
-                if (static_cast<MyGraphicsItem*>(item)->type() != MyGraphicsItem::MyItem)
+                if (static_cast<MyGraphicsItem*>(item)->type() != MyGraphicsItem::MyItem) {
+                    qDebug() << "请单击起点";
                     emit printLog("请单击起点");
+                }
                 else {
                     m_state = M_ADD_PATH;
                     m_plast = static_cast<MyGraphicsItem*>(item)->getPosition();
+                    qDebug() << "起点设置成功" << m_plast->id;
                     emit printLog("起点设置成功");
                 }
             }
@@ -306,14 +328,15 @@ void MyGraphicsView::mousePressEvent(QMouseEvent *event)
             MyGraphicsItem *item = static_cast<MyGraphicsItem*>(scene->itemAt(p, this->transform()));
             if (item != NULL) {
                 if (item->type() == MyGraphicsItem::MyItem) {
-                    addLine(m_plast->id, item->getPosition()->id);
+                    qDebug() << "终点设置成功" << m_plast->id << item->getPosition()->id;
+                    addLine(m_plast, item->getPosition());
                     emit printLog("路径添加成功");
                     m_plast = item->getPosition();
                     QGraphicsView::mousePressEvent(event);  //必须将事件向下传递
                     return;
                 }
                 Pos * newp = addPathPoint(p);
-                addLine(m_plast->id, newp->id);
+                addLine(m_plast, newp);
                 m_plast = newp;
             }
         }
@@ -473,6 +496,11 @@ void MyGraphicsView::keyPressEvent(QKeyEvent *event)
             }
             std::cout << std::endl;
         }
+        qDebug() << "显示idToIdx";
+        for (int i = 0; i < m_map->m_all_locs.size(); i ++) {
+            std::cout << m_map->m_all_locs[i]->id << "-" << m_map->idToIdx[m_map->m_all_locs[i]->id];
+            std::cout << std::endl;
+        }
 
         /*
         if (m_map->dist_cache.contains(0)) {
@@ -508,7 +536,11 @@ void MyGraphicsView::on_readMapData()
         drawLine(e);
     }
     clearPathLine();
-    emit selfStateChanged(M_DEFAULT, M_DEFAULT);
+
+    //需要初始化pos的id
+    Pos::cnt = m_map->m_all_locs.last()->id + 1;
+
+    emit selfStateChanged(this->m_state, this->m_state);
 }
 
 void MyGraphicsView::onActionNormal(bool checked)
@@ -564,6 +596,7 @@ void MyGraphicsView::onActionSave()
         out << *e;
     }
     out << m_map->m_adjList;
+    out << m_map->idToIdx;
     //qDebug() << file.flush() << m_map->m_all_locs.size() << m_map->m_all_edges.size();
 }
 
@@ -594,6 +627,7 @@ void MyGraphicsView::onActionLoad()
         m_map->m_all_edges.push_back(e);
     }
     in >> m_map->m_adjList;
+    in >> m_map->idToIdx;
     emit read_MapData();
     emit posChanged();
 }
@@ -682,27 +716,16 @@ void MyGraphicsView::onSelfStateChanged(int olds, int news)
 void MyGraphicsView::onSelectItem()
 {
     QList<QGraphicsItem *> items = this->scene->selectedItems();
-    if (items.size() == 0) return;
     QVector<QString> name;
+
+    if (items.size() == 0 || items.first()->type() != MyGraphicsItem::MyItem) {
+        selectedItem = NULL;
+        emit showSelectedPos(NULL);
+        return;
+    }
     if (items.first()->type() == MyGraphicsItem::MyItem) {
         MyGraphicsItem *p = static_cast<MyGraphicsItem*>(items.first());
         selectedItem = p;
-        name = p->getPosition()->name;
-        emit showSelectedPos(name);
-
-        QString str;
-        if (name.size() > 0) str.append(name.takeFirst());
-        if (name.size() > 0) {
-            for (auto s : name) {
-                str.append(" | ");
-                str.append(s);
-            }
-        }
-        currentPos->setText(str);
-    }
-    else {
-        selectedItem = NULL;
-        emit showSelectedPos(name);
-        currentPos->setText("");
+        emit showSelectedPos(p->getPosition());
     }
 }

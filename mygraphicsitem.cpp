@@ -3,6 +3,7 @@
 MyGraphicsItem::MyGraphicsItem()
 {
 
+
 }
 
 MyGraphicsItem::~MyGraphicsItem()
@@ -14,6 +15,8 @@ MyGraphicsItem::~MyGraphicsItem()
 MyGraphicsItem::MyGraphicsItem(qreal x, qreal y, qreal width, qreal height, QGraphicsItem *parent)
     : QGraphicsEllipseItem(x, y, width, height, parent)
 {
+
+
 }
 
 void MyGraphicsItem::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget) {

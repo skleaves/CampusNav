@@ -9,8 +9,12 @@
 #include <QLabel>
 #include <QCompleter>
 #include <QListView>
+#include <QTableWidget>
+#include "map.h"
 #include "findpathwidget.h"
 #include "poswidget.h"
+#include "pathwidget.h"
+#include "tablewidget.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -29,6 +33,9 @@ private:
 
     FindPathWidget *findPathWidget;
     PosWidget *posWidget;
+    PathWidget *pathWidget;
+    TableWidget *tableWidget;
+
     QLabel *currentPos;
     QAction *normal_action, *add_loc_action, *add_path_action;
 
@@ -42,8 +49,11 @@ public slots:
     void onPosChanged();
     void onStateChanged(int state);
     void onGetUserInput(bool &isOK, QString &str);
-    void onShowSelectedPos(QVector<QString> name);
-    void onlineNameEdited(QVector<QString> name);
+    void onShowSelectedPos(Pos * pos);
+    void onlineNameEdited(QString name, QStringList otherName);
+    void onPosNameEdited(int id, QString name, QStringList otherName);
+    void onShowTableWidget();
+    void onDelSelectedPos();
 
     void onPushBtnFindPressed(int start, int end);
     void onPushBtnClearPressed();

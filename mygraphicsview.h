@@ -27,7 +27,7 @@ public:
     void moveBy(QPointF offset);
     Pos * addPoint(QPointF p);
     Pos * addPathPoint(QPointF p);
-    void addLine(int pid1, int pid2);
+    void addLine(Pos * a, Pos * b);
     void drawPoint(Pos *p);
     void drawPathPoint(Pos *p);
     void drawLine(Edge *e);
@@ -39,7 +39,7 @@ public:
     void clearLine();
     void clearPathLine();
 
-    MyGraphicsItem *selectedItem;
+    MyGraphicsItem *selectedItem = NULL;
 
 private:
     enum {
@@ -64,9 +64,6 @@ private:
     Pos *m_plast;
 
     QStack<Pos *> m_phistory;      //用于撤销时暂存点的历史记录
-    QLinkedList<MyGraphicsItem *> m_all_locs_list;       //所有路径点图元的链表 用于删除
-    QLinkedList<QGraphicsLineItem *> m_all_edges_list;   //所有边图元的链表 用于删除
-    QLinkedList<QGraphicsLineItem *> m_path_list;        //画出的路径图元的链表 用于删除
 
 private:
     void wheelEvent(QWheelEvent *event) Q_DECL_OVERRIDE;
@@ -77,17 +74,21 @@ private:
 
 public:
     Map * m_map;    //存储的图
+    QLinkedList<MyGraphicsItem *> m_all_locs_list;       //所有路径点图元的链表 用于删除
+    QLinkedList<QGraphicsLineItem *> m_all_edges_list;   //所有边图元的链表 用于删除
+    QLinkedList<QGraphicsLineItem *> m_path_list;        //画出的路径图元的链表 用于删除
     QLabel *sceneCoord, *viewCoord, *mapCoord, *currentPos;
 
 //信号
 signals:
     void read_MapData();
     void posChanged();
+
     void stateChanged(int state);
     void selfStateChanged(int olds, int news);
     void printLog(QString str);
     void getUserInput(bool &isOK, QString &str);
-    void showSelectedPos(QVector<QString> name);
+    void showSelectedPos(Pos * pos);
 
 public slots:
     void on_readMapData();

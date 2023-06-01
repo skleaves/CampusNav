@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>766</width>
-    <height>75</height>
+    <width>877</width>
+    <height>121</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -16,73 +16,218 @@
   <widget class="QLabel" name="label">
    <property name="geometry">
     <rect>
-     <x>290</x>
-     <y>20</y>
-     <width>101</width>
-     <height>21</height>
+     <x>30</x>
+     <y>10</y>
+     <width>121</width>
+     <height>31</height>
     </rect>
    </property>
+   <property name="font">
+    <font>
+     <family>幼圆</family>
+     <pointsize>14</pointsize>
+    </font>
+   </property>
    <property name="text">
-    <string>当前地点名：</string>
+    <string>地点名</string>
    </property>
   </widget>
   <widget class="QLabel" name="label_2">
    <property name="geometry">
     <rect>
-     <x>520</x>
-     <y>20</y>
+     <x>290</x>
+     <y>10</y>
      <width>101</width>
-     <height>21</height>
+     <height>31</height>
     </rect>
+   </property>
+   <property name="font">
+    <font>
+     <family>幼圆</family>
+     <pointsize>14</pointsize>
+    </font>
    </property>
    <property name="text">
-    <string>地点别名：</string>
-   </property>
-  </widget>
-  <widget class="QLineEdit" name="line1st">
-   <property name="geometry">
-    <rect>
-     <x>380</x>
-     <y>20</y>
-     <width>113</width>
-     <height>21</height>
-    </rect>
+    <string>地点别名</string>
    </property>
   </widget>
   <widget class="QLineEdit" name="line2nd">
    <property name="geometry">
     <rect>
-     <x>610</x>
-     <y>20</y>
-     <width>113</width>
-     <height>21</height>
+     <x>290</x>
+     <y>50</y>
+     <width>221</width>
+     <height>41</height>
     </rect>
+   </property>
+   <property name="font">
+    <font>
+     <family>方正标雅宋_GBK</family>
+     <pointsize>12</pointsize>
+    </font>
    </property>
   </widget>
   <widget class="QPushButton" name="pushBtnAdd">
    <property name="geometry">
     <rect>
-     <x>30</x>
-     <y>10</y>
-     <width>111</width>
-     <height>31</height>
+     <x>630</x>
+     <y>40</y>
+     <width>52</width>
+     <height>52</height>
     </rect>
    </property>
    <property name="text">
-    <string>添加地点</string>
+    <string/>
    </property>
   </widget>
   <widget class="QPushButton" name="pushBtnDel">
    <property name="geometry">
     <rect>
-     <x>160</x>
-     <y>10</y>
-     <width>111</width>
-     <height>31</height>
+     <x>710</x>
+     <y>40</y>
+     <width>52</width>
+     <height>52</height>
     </rect>
    </property>
    <property name="text">
-    <string>删除地点</string>
+    <string/>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_3">
+   <property name="geometry">
+    <rect>
+     <x>640</x>
+     <y>10</y>
+     <width>41</width>
+     <height>21</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <family>幼圆</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+   <property name="text">
+    <string>添加</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_4">
+   <property name="geometry">
+    <rect>
+     <x>720</x>
+     <y>10</y>
+     <width>41</width>
+     <height>21</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <family>幼圆</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+   <property name="text">
+    <string>删除</string>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="pushBtnGo">
+   <property name="geometry">
+    <rect>
+     <x>550</x>
+     <y>40</y>
+     <width>52</width>
+     <height>52</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string/>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_5">
+   <property name="geometry">
+    <rect>
+     <x>550</x>
+     <y>10</y>
+     <width>41</width>
+     <height>21</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <family>方正标雅宋_GBK</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+   <property name="text">
+    <string/>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="pushBtnEdit">
+   <property name="geometry">
+    <rect>
+     <x>790</x>
+     <y>40</y>
+     <width>52</width>
+     <height>52</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string/>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_6">
+   <property name="geometry">
+    <rect>
+     <x>800</x>
+     <y>10</y>
+     <width>41</width>
+     <height>21</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <family>幼圆</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+   <property name="text">
+    <string>浏览</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_7">
+   <property name="geometry">
+    <rect>
+     <x>560</x>
+     <y>10</y>
+     <width>41</width>
+     <height>21</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <family>幼圆</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+   <property name="text">
+    <string>查询</string>
+   </property>
+  </widget>
+  <widget class="QLineEdit" name="line1st">
+   <property name="geometry">
+    <rect>
+     <x>30</x>
+     <y>50</y>
+     <width>221</width>
+     <height>41</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <family>方正标雅宋_GBK</family>
+     <pointsize>12</pointsize>
+    </font>
    </property>
   </widget>
  </widget>

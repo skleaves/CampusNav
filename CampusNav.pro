@@ -23,7 +23,9 @@ SOURCES += \
     map.cpp \
     mygraphicsitem.cpp \
     mygraphicsview.cpp \
-    poswidget.cpp
+    pathwidget.cpp \
+    poswidget.cpp \
+    tablewidget.cpp
 
 HEADERS += \
     findpathwidget.h \
@@ -32,12 +34,16 @@ HEADERS += \
     map.h \
     mygraphicsitem.h \
     mygraphicsview.h \
-    poswidget.h
+    pathwidget.h \
+    poswidget.h \
+    tablewidget.h
 
 FORMS += \
     findpathwidget.ui \
     mainwindow.ui \
-    poswidget.ui
+    pathwidget.ui \
+    poswidget.ui \
+    tablewidget.ui
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin

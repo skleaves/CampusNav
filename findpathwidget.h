@@ -23,12 +23,14 @@ public:
 
 private:
     Ui::FindPathWidget *ui;
+    QStringList str;
 
 
 
 public slots:
     void onPushBtnFindClicked();
     void onPushBtnClearClicked();
+    void onEditTextChanged(QString str);
 
 signals:
     void pushBtnFindPressed(int start, int end);

@@ -39,6 +39,9 @@ public:
      void hoverEnterEvent(QGraphicsSceneHoverEvent * event) Q_DECL_OVERRIDE;
      //void hoverMoveEvent(QGraphicsSceneHoverEvent * event) Q_DECL_OVERRIDE;
      void hoverLeaveEvent(QGraphicsSceneHoverEvent * event) Q_DECL_OVERRIDE;
+
+public slots:
+     void onSelectedChanged();
 };
 
 #endif // MYGRAPHICSITEM_H

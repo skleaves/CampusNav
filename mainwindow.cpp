@@ -18,7 +18,11 @@ MainWindow::MainWindow(QWidget *parent)
     ui->stackedWidget->addWidget(findPathWidget);
     posWidget = new PosWidget();
     ui->stackedWidget->addWidget(posWidget);
+    pathWidget = new PathWidget();
+    ui->stackedWidget->addWidget(pathWidget);
     ui->stackedWidget->setCurrentWidget(findPathWidget);
+
+
 
     QActionGroup* normalAddActions = new QActionGroup(this);
     normalAddActions->setExclusive(true);
@@ -60,6 +64,7 @@ MainWindow::MainWindow(QWidget *parent)
     clear_action->setIcon(QIcon(":/img/clear.png"));
 
 
+
     QLabel *viewCoord = new QLabel("view: 0, 0",this);
     viewCoord->setMinimumWidth(150);
     ui->statusBar->addWidget(viewCoord);
@@ -86,6 +91,9 @@ MainWindow::MainWindow(QWidget *parent)
     ui->graphicsView->setRenderHints(QPainter::Antialiasing | QPainter::SmoothPixmapTransform);
     ui->graphicsView->setMouseTracking(true);
 
+    tableWidget = new TableWidget();
+    tableWidget->m_map = ui->graphicsView->m_map;
+    tableWidget->loadTableView();
 
     //绑定各个控件对应的信号与槽函数
     connect(normal_action, &QAction::triggered, this, &MainWindow::onActionNormal);
@@ -108,7 +116,11 @@ MainWindow::MainWindow(QWidget *parent)
     connect(this->findPathWidget, &FindPathWidget::pushBtnClearPressed, this, &MainWindow::onPushBtnClearPressed);
 
     connect(this->posWidget, &PosWidget::btnAddToggled, this->ui->graphicsView, &MyGraphicsView::onActionAddPos);
+    connect(this->posWidget, &PosWidget::showTableWidget, this, &MainWindow::onShowTableWidget);
     connect(this->posWidget, &PosWidget::lineNameEdited, this, &MainWindow::onlineNameEdited);
+    connect(this->posWidget, &PosWidget::delSelectedPos, this, &MainWindow::onDelSelectedPos);
+
+    connect(this->tableWidget, &TableWidget::posNameEdited, this, &MainWindow::onPosNameEdited);
 }
 
 MainWindow::~MainWindow()
@@ -135,7 +147,7 @@ void MainWindow::onActionPos(bool checked)
 void MainWindow::onActionPath(bool checked)
 {
     if (checked) {
-        //this->ui->stackedWidget
+        this->ui->stackedWidget->setCurrentWidget(pathWidget);
         posWidget->setBtnAdd(false);
     }
 }
@@ -147,13 +159,17 @@ void MainWindow::onPosChanged()
     //先清空现有的map
     findPathWidget->nameToId.clear();
 
+    ui->graphicsView->m_map->dist_cache.clear();
+    ui->graphicsView->m_map->path_cache.clear();
+
     QStringList strList;
 
+    //需要更新下拉列表
     for (auto p : ui->graphicsView->m_map->m_all_locs) {
         QString str;
         if (p->isBuild) {
-            if (p->name.size() > 0) str.append(p->name.first());
-            for (auto it = p->name.begin()+1; it != p->name.end(); it ++) {
+            str.append(p->name);
+            for (auto it = p->otherName.begin(); it != p->otherName.end(); it ++) {
                 str.append(" | ");
                 str.append(*it);
             }
@@ -164,6 +180,8 @@ void MainWindow::onPosChanged()
     strList.sort();
 
     findPathWidget->loadItems(strList);
+    qDebug() << "reload table";
+    tableWidget->loadTableView();
 }
 
 void MainWindow::onStateChanged(int state)
@@ -201,39 +219,166 @@ void MainWindow::onGetUserInput(bool &isOK, QString &str)
     isOK = OK;
 }
 
-void MainWindow::onShowSelectedPos(QVector<QString> name)
+void MainWindow::onShowSelectedPos(Pos * pos)
 {
-    if (ui->stackedWidget->currentWidget() == posWidget) {
-        posWidget->showPosName(name);
+    if (pos == NULL || !pos->isBuild) {
+        if (pos == NULL) currentPos->clear();
+        //else currentPos->setText(QString(pos->id));
+        else qDebug() << pos->id;
+        posWidget->showPosName(pos);
+        posWidget->setEditEnable(false);
+        return;
     }
+
+    posWidget->setEditEnable(true);
+    posWidget->showPosName(pos);
+
+    QString str;
+    str.append(pos->name);
+    if (pos->otherName.size() > 0) {
+        for (auto s : pos->otherName) {
+            str.append(" | ");
+            str.append(s);
+        }
+    }
+    currentPos->setText(str);
 }
 
-void MainWindow::onlineNameEdited(QVector<QString> name)
+void MainWindow::onlineNameEdited(QString name, QStringList otherName)
 {
     if (ui->graphicsView->selectedItem != NULL) {
-        Pos *p = ui->graphicsView->selectedItem->getPosition();
-        p->name = name;
+        Pos *pos = ui->graphicsView->selectedItem->getPosition();
+        pos->name = name;
+        pos->otherName = otherName;
+
         QString str;
-        if (name.size() > 0) str.append(name.takeFirst());
-        if (name.size() > 0) {
-            for (auto s : name) {
+        str.append(pos->name);
+        if (pos->otherName.size() > 0) {
+            for (auto s : pos->otherName) {
                 str.append(" | ");
                 str.append(s);
             }
         }
-        ui->graphicsView->currentPos->setText(str);
+        currentPos->setText(str);
 
-        //TODO 需要更新到下拉列表
+        //需要更新到下拉列表
         onPosChanged();
+    }
+}
+
+void MainWindow::onPosNameEdited(int id, QString name, QStringList otherName)
+{
+    Pos * pos = ui->graphicsView->m_map->m_all_locs[ui->graphicsView->m_map->idToIdx[id]];
+
+    pos->name = name;
+    pos->otherName = otherName;
+
+    if (ui->graphicsView->selectedItem != NULL) {
+        Pos *selPos = ui->graphicsView->selectedItem->getPosition();
+        if (selPos->id == pos->id) {
+            QString str;
+            str.append(pos->name);
+            if (pos->otherName.size() > 0) {
+                for (auto s : pos->otherName) {
+                    str.append(" | ");
+                    str.append(s);
+                }
+            }
+            currentPos->setText(str);
+
+            posWidget->showPosName(selPos);
+        }
+    }
+
+    //需要更新到下拉列表
+    onPosChanged();
+}
+
+void MainWindow::onShowTableWidget()
+{
+    qDebug() << "show table";
+
+
+    tableWidget->show();
+}
+
+void MainWindow::onDelSelectedPos()
+{
+    if (ui->graphicsView->selectedItem != NULL) {
+        Pos *pos = ui->graphicsView->selectedItem->getPosition();
+
+        //在邻接表中删除该点
+        //首先需要找到和这个点邻接的点
+        QLinkedList<QPairI> adjList;    //这个点的邻接表
+        for (auto t : ui->graphicsView->m_map->m_adjList) {
+            if (t.first().first == pos->id) {
+                adjList = t;
+                ui->graphicsView->m_map->m_adjList.removeOne(t);
+                break;
+            }
+        }
+        QList<int> adjPos;  //与该点邻接的所有点的id
+        for (auto it = adjList.begin() + 1; it != adjList.end(); it ++) {
+            adjPos.push_back((*it).first);
+        }
+        //然后对所有邻接的点 都需要在其邻接表中删除该点
+        for (auto pid : adjPos) {
+            for (auto it = ui->graphicsView->m_map->m_adjList.begin(); it != ui->graphicsView->m_map->m_adjList.end(); it ++) {
+                if ((*it).first().first == pid) {
+                    for (auto pair : (*it)) {
+                        if (pair.first == pos->id) {
+                            it->removeOne(pair);
+                            break;
+                        }
+                    }
+                    break;
+                }
+            }
+        }
+
+        //在所有loc中删除
+        ui->graphicsView->m_map->m_all_locs.removeOne(pos);
+
+        ui->graphicsView->m_map->idToIdx.clear();
+        for (int i = 0; i < ui->graphicsView->m_map->m_all_locs.size(); i ++) {
+            ui->graphicsView->m_map->idToIdx.insert(ui->graphicsView->m_map->m_all_locs[i]->id, i);
+        }
+
+        //在所有edge中删除
+        for (auto it = ui->graphicsView->m_map->m_all_edges.begin(); it != ui->graphicsView->m_map->m_all_edges.end();) {
+            if ((*it)->start_pos == pos->id || (*it)->end_pos == pos->id) ui->graphicsView->m_map->m_all_edges.erase(it);
+            else it ++;
+        }
+
+        ui->graphicsView->m_all_locs_list.removeOne(ui->graphicsView->selectedItem);
+
+
+        //删除边图元
+        auto items = ui->graphicsView->selectedItem->collidingItems();
+        for (auto item : items) {
+            if (item->type() == 6) {
+                ui->graphicsView->m_all_edges_list.removeOne(static_cast<QGraphicsLineItem*>(item));
+                delete item;
+            }
+        }
+
+        delete ui->graphicsView->selectedItem;
+
+        //需要更新到下拉列表
+        onPosChanged();
+        return;
     }
 }
 
 void MainWindow::onPushBtnFindPressed(int start, int end)
 {
     ui->graphicsView->clearPathLine();
-    qDebug() << "计算最短路";
+    qDebug() << "计算最短路" << start << end;
     int len = ui->graphicsView->m_map->m_adjList.size();
-    if (ui->graphicsView->m_map->dijkstra(start, end, len)) qDebug() << "计算成功";
+    if (!ui->graphicsView->m_map->dist_cache.contains(start)) {
+        ui->graphicsView->m_map->dijkstra(start, len);
+        qDebug() << "计算成功";
+    }
     ui->graphicsView->showPath(start, end);
 }
 
