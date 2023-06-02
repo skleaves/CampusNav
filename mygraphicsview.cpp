@@ -15,6 +15,8 @@ MyGraphicsView::MyGraphicsView(QWidget *parent) : QGraphicsView(parent)
     m_map = new Map();
     scene = new QGraphicsScene();
 
+    flasher = new FlashObject(NULL);
+
     connect(this->scene, &QGraphicsScene::selectionChanged, this, &MyGraphicsView::onSelectItem);
     connect(this, &MyGraphicsView::read_MapData, this, &MyGraphicsView::on_readMapData);
     connect(this, &MyGraphicsView::selfStateChanged, this, &MyGraphicsView::onSelfStateChanged);
@@ -636,8 +638,8 @@ void MyGraphicsView::onActionClear()
 {
     clearPoint();
     clearLine();
-
     this->m_map->m_adjList.clear();
+    emit posChanged();
 }
 
 void MyGraphicsView::onSelfStateChanged(int olds, int news)
@@ -720,12 +722,24 @@ void MyGraphicsView::onSelectItem()
 
     if (items.size() == 0 || items.first()->type() != MyGraphicsItem::MyItem) {
         selectedItem = NULL;
+
+        flasher->setFlash(false);
+
         emit showSelectedPos(NULL);
         return;
     }
     if (items.first()->type() == MyGraphicsItem::MyItem) {
         MyGraphicsItem *p = static_cast<MyGraphicsItem*>(items.first());
         selectedItem = p;
+
+        //设置选中点的闪烁
+        if (selectedItem->getPosition()->isBuild) {
+            flasher->item = selectedItem;
+            flasher->setFlash(true);
+        }
+        else {
+            flasher->setFlash(false);
+        }
         emit showSelectedPos(p->getPosition());
     }
 }

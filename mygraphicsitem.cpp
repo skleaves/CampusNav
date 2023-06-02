@@ -68,6 +68,22 @@ Pos * MyGraphicsItem::getPosition()
     return this->m_position;
 }
 
+
+void MyGraphicsItem::doFlash()
+{
+    if (this->brush().color() == Qt::blue){
+        qDebug() << "设置为红色";
+        this->setBrush(QBrush(Qt::red));
+        //this->brush().setColor(Qt::red);
+        //this->update();
+    }
+    else {
+        qDebug() << "设置为蓝色";
+        this->setBrush(QBrush(Qt::blue));
+        //this->update();
+    }
+}
+
 void MyGraphicsItem::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
 {
     //qDebug() << "[Item]: move";

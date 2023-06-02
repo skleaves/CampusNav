@@ -6,6 +6,7 @@
 #include <QPropertyAnimation>
 #include <QGraphicsSceneMouseEvent>
 #include <QPainter>
+#include <QTimer>
 #include "map.h"
 
 class MyGraphicsItem : public QGraphicsEllipseItem
@@ -19,26 +20,27 @@ public:
     MyGraphicsItem(qreal x, qreal y, qreal width, qreal height, QGraphicsItem *parent = Q_NULLPTR);
 
 public:
-     enum { MyItem = UserType + 1 };
-     int type() const override
-     {
+    enum { MyItem = UserType + 1 };
+    int type() const override {
         return MyItem;
-     }
+    }
 
-     void setPosition(Pos *pos);
-     Pos * getPosition();
+    void setPosition(Pos *pos);
+    Pos * getPosition();
 
-     //重写绘制 去除选中的虚线框 更改为自定义样式
-     void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget) Q_DECL_OVERRIDE;
+    void doFlash();
 
-     QVariant itemChange(GraphicsItemChange change, const QVariant &value) Q_DECL_OVERRIDE;
+    //重写绘制 去除选中的虚线框 更改为自定义样式
+    void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget) Q_DECL_OVERRIDE;
 
-     void mouseMoveEvent(QGraphicsSceneMouseEvent *event) Q_DECL_OVERRIDE;
-     void mousePressEvent(QGraphicsSceneMouseEvent *event) Q_DECL_OVERRIDE;
-     void mouseReleaseEvent(QGraphicsSceneMouseEvent *event) Q_DECL_OVERRIDE;
-     void hoverEnterEvent(QGraphicsSceneHoverEvent * event) Q_DECL_OVERRIDE;
-     //void hoverMoveEvent(QGraphicsSceneHoverEvent * event) Q_DECL_OVERRIDE;
-     void hoverLeaveEvent(QGraphicsSceneHoverEvent * event) Q_DECL_OVERRIDE;
+    QVariant itemChange(GraphicsItemChange change, const QVariant &value) Q_DECL_OVERRIDE;
+
+    void mouseMoveEvent(QGraphicsSceneMouseEvent *event) Q_DECL_OVERRIDE;
+    void mousePressEvent(QGraphicsSceneMouseEvent *event) Q_DECL_OVERRIDE;
+    void mouseReleaseEvent(QGraphicsSceneMouseEvent *event) Q_DECL_OVERRIDE;
+    void hoverEnterEvent(QGraphicsSceneHoverEvent * event) Q_DECL_OVERRIDE;
+    //void hoverMoveEvent(QGraphicsSceneHoverEvent * event) Q_DECL_OVERRIDE;
+    void hoverLeaveEvent(QGraphicsSceneHoverEvent * event) Q_DECL_OVERRIDE;
 
 public slots:
      void onSelectedChanged();

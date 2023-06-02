@@ -190,6 +190,8 @@ void MainWindow::onStateChanged(int state)
     case 0:     //普通模式
         this->ui->graphicsView->setCursor(Qt::ArrowCursor);
         normal_action->setChecked(true);
+        this->ui->stackedWidget->setCurrentWidget(findPathWidget);
+        posWidget->setBtnAdd(false);
         break;
     case 1:     //添加地点
         this->ui->graphicsView->setCursor(Qt::CrossCursor);

@@ -17,6 +17,7 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 SOURCES += \
     findpathwidget.cpp \
+    flashobject.cpp \
     graphicsviewzoom.cpp \
     main.cpp \
     mainwindow.cpp \
@@ -29,6 +30,7 @@ SOURCES += \
 
 HEADERS += \
     findpathwidget.h \
+    flashobject.h \
     graphicsviewzoom.h \
     mainwindow.h \
     map.h \

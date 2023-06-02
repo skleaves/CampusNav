@@ -14,9 +14,11 @@
 #include <QMatrix>
 #include <QLinkedList>
 #include <QStack>
+#include <QTimer>
 #include "map.h"
 #include "mygraphicsitem.h"
 #include "graphicsviewzoom.h"
+#include "flashobject.h"
 
 class MyGraphicsView : public QGraphicsView
 {
@@ -57,6 +59,7 @@ private:
     Graphicsviewzoom* z;        //用于缩放
     MyGraphicsItem *prevItem = NULL;   //用于预览
     QGraphicsLineItem *prevLine = NULL;
+    FlashObject *flasher;
     QPoint viewPoint;
     QPointF scenePoint;
     QPointF m_startpos;         //鼠标开始点 同下用于移动视图

@@ -7,6 +7,7 @@
 #include <QMenu>
 #include <QAction>
 #include <QStandardItemModel>
+#include <QLayout>
 
 namespace Ui {
 class TableWidget;
@@ -21,6 +22,7 @@ public:
     ~TableWidget();
 
     void loadTableView();
+    void clearTableView();
 
     Map * m_map;
 
@@ -38,7 +40,8 @@ signals:
 
 public slots:
     void onPopItemMenu(const QPoint &pos);
-    void onPopHeaderMenu(const QPoint &pos);
+    void onPopVerticalHeaderMenu(const QPoint &pos);
+    void onPopHorizontalHeaderMenu(const QPoint &pos);
 
     void onNameEdited(const QModelIndex &topLeft, const QModelIndex &bottomRight, const QVector<int> &roles);
 };

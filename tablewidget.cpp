@@ -7,8 +7,13 @@ TableWidget::TableWidget(QWidget *parent) :
 {
     ui->setupUi(this);
 
+    //添加布局
+    QHBoxLayout *windowLayout = new QHBoxLayout;
+    windowLayout->addWidget(ui->tableView);
+    this->setLayout(windowLayout);
+
     m_model = new QStandardItemModel(this);
-    /*设置列字段名*/
+    //设置列字段名
     m_model->setColumnCount(3);
     m_model->setHeaderData(0,Qt::Horizontal, "地点名");
     m_model->setHeaderData(1,Qt::Horizontal, "别名");
@@ -18,6 +23,8 @@ TableWidget::TableWidget(QWidget *parent) :
     ui->tableView->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Stretch);//使第二列的内容完全显示
     ui->tableView->verticalHeader()->setDefaultAlignment(Qt::AlignCenter);
     ui->tableView->verticalHeader()->setFixedWidth(40);
+    //隔行变色
+    ui->tableView->setAlternatingRowColors(true);
     //打开右键菜单
     ui->tableView->setContextMenuPolicy(Qt::CustomContextMenu);
     ui->tableView->horizontalHeader()->setContextMenuPolicy(Qt::CustomContextMenu);
@@ -28,18 +35,12 @@ TableWidget::TableWidget(QWidget *parent) :
     //删除按钮
     m_actionDel = new QAction("删除地点",m_menu);
     //connect(m_actionDel,&QAction::triggered,this,&MainWindow::slotDel);
-    //清空按钮
-    //m_actionEmpty = new QAction("清空地点",m_menu);
-    //connect(m_actionEmpty,&QAction::triggered,this,&MainWindow::sloEmpty);
     //添加删除按钮
     m_menu->addAction(m_actionDel);
-    //添加清空按钮
-    //m_menu->addAction(m_actionEmpty);
-    //connect(ui->table,&QTableWidget::customContextMenuRequested,this,&TableWidget::onPopItemMenu);
 
-    connect(ui->tableView->verticalHeader(), &QTableView::customContextMenuRequested, this, &TableWidget::onPopHeaderMenu);
+    connect(ui->tableView->verticalHeader(), &QTableView::customContextMenuRequested, this, &TableWidget::onPopVerticalHeaderMenu);
+    connect(ui->tableView->horizontalHeader(), &QTableView::customContextMenuRequested, this, &TableWidget::onPopHorizontalHeaderMenu);
     connect(this->m_model, &QAbstractItemModel::dataChanged, this, &TableWidget::onNameEdited);
-
 }
 
 TableWidget::~TableWidget()
@@ -86,6 +87,12 @@ void TableWidget::loadTableView()
     }
 }
 
+void TableWidget::clearTableView()
+{
+    m_model->clear();
+
+}
+
 
 
 void TableWidget::onPopItemMenu(const QPoint &pos)
@@ -98,30 +105,22 @@ void TableWidget::onPopItemMenu(const QPoint &pos)
     */
 }
 
-void TableWidget::onPopHeaderMenu(const QPoint &pos)
+void TableWidget::onPopVerticalHeaderMenu(const QPoint &pos)
 {
     qDebug() << "右键";
-    /*
-    int index = ui->table->rowAt(pos.x());
-    qDebug() << "选中的行：" << index;
-    */
     int index = ui->tableView->rowAt(pos.y());
     qDebug() << "选中的行：" << index;
     m_menu->exec(QCursor::pos());
-    return;
+}
 
-
-    QMenu *menu=new QMenu;
-    QAction *pnew=new QAction("筛选");
-    menu->addAction(pnew);
-
-    QMenu *menu1=menu->addMenu("排序");
-    QAction *pnew_up=new QAction("升序");
-    QAction *pnew_down=new QAction("降序");
-    menu1->addAction(pnew_up);
-    menu1->addAction(pnew_down);
-    menu->move(cursor().pos());
-    menu->show();
+void TableWidget::onPopHorizontalHeaderMenu(const QPoint &pos)
+{
+    QMenu *menu = new QMenu;
+    QAction *sort_up = new QAction("升序排列");
+    QAction *sort_down = new QAction("降序排列");
+    menu->addAction(sort_up);
+    menu->addAction(sort_down);
+    menu->exec(QCursor::pos());
 }
 
 void TableWidget::onNameEdited(const QModelIndex &topLeft, const QModelIndex &bottomRight, const QVector<int> &roles)

@@ -31,6 +31,7 @@ FindPathWidget::~FindPathWidget()
 
 void FindPathWidget::loadItems(QStringList str)
 {
+    if (str.isEmpty()) return;
     this->str = str;
     ui->comboBoxStart->clear();
     ui->comboBoxEnd->clear();
