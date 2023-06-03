@@ -315,13 +315,14 @@ void MyGraphicsView::mousePressEvent(QMouseEvent *event)
             if (item != NULL) {
                 if (static_cast<MyGraphicsItem*>(item)->type() != MyGraphicsItem::MyItem) {
                     qDebug() << "请单击起点";
-                    emit printLog("请单击起点");
+                    emit printLog(GRAY_TEXT("单击地点或路径点以设置起点<br>"));
                 }
                 else {
                     m_state = M_ADD_PATH;
                     m_plast = static_cast<MyGraphicsItem*>(item)->getPosition();
                     qDebug() << "起点设置成功" << m_plast->id;
-                    emit printLog("起点设置成功");
+                    QString idStr = QString::number(m_plast->id, 10);
+                    emit printLog(GRAY_TEXT("起点设置成功:") " <font color=blue>" + idStr + "</font> " " <font color=gray></font><br> ");
                 }
             }
         }
@@ -330,14 +331,19 @@ void MyGraphicsView::mousePressEvent(QMouseEvent *event)
             MyGraphicsItem *item = static_cast<MyGraphicsItem*>(scene->itemAt(p, this->transform()));
             if (item != NULL) {
                 if (item->type() == MyGraphicsItem::MyItem) {
-                    qDebug() << "终点设置成功" << m_plast->id << item->getPosition()->id;
+                    //qDebug() << "终点设置成功" << m_plast->id << item->getPosition()->id;
+                    QString sidStr = QString::number(m_plast->id, 10);
+                    QString eidStr = QString::number(item->getPosition()->id, 10);
                     addLine(m_plast, item->getPosition());
-                    emit printLog("路径添加成功");
+                    emit printLog(GRAY_TEXT("路径添加成功:") " <font color=red>" + sidStr + "</font> " GRAY_TEXT("->") " <font color=red>" + eidStr + "</font><br> ");
                     m_plast = item->getPosition();
                     QGraphicsView::mousePressEvent(event);  //必须将事件向下传递
                     return;
                 }
                 Pos * newp = addPathPoint(p);
+                QString sidStr = QString::number(m_plast->id, 10);
+                QString eidStr = QString::number(newp->id, 10);
+                emit printLog(GRAY_TEXT("路径添加成功:") " <font color=red>" + sidStr + "</font> " GRAY_TEXT("->") " <font color=red>" + eidStr + "</font><br> ");
                 addLine(m_plast, newp);
                 m_plast = newp;
             }
@@ -352,6 +358,7 @@ void MyGraphicsView::mouseReleaseEvent(QMouseEvent *event)
     if (event->button() == Qt::RightButton)
     {
         if (this->m_state == M_ADD_LOC) this->setCursor(Qt::CrossCursor);
+        else if (this->m_state == M_ADD_PATHBG || this->m_state == M_ADD_PATH) ;
         else this->setCursor(Qt::ArrowCursor);
         isMoving = false;
     }
@@ -474,6 +481,7 @@ void MyGraphicsView::keyPressEvent(QKeyEvent *event)
             m_state = M_ADD_PATHBG;
             emit selfStateChanged(olds, M_ADD_PATHBG);
             emit stateChanged(M_ADD_PATHBG);
+            emit printLog(BLUE_TEXT("起点取消 请重新选择<br>"));
         }
         else if (m_state == M_ADD_LOC) {
             int olds = this->m_state;
@@ -581,9 +589,10 @@ void MyGraphicsView::onActionAddPath(bool checked)
 
 void MyGraphicsView::onActionSave()
 {
-    QFile file("map.dat");
-    if(!file.open(QIODevice::WriteOnly))
-    {
+    QString fileName = QFileDialog::getOpenFileName(this, tr("存储地图信息"), "D:",
+                                                    tr("地图信息文件 (*.mapdat)"));
+    QFile file(fileName);
+    if(!file.open(QIODevice::WriteOnly)) {
          return;
     }
     QDataStream out(&file);
@@ -604,12 +613,15 @@ void MyGraphicsView::onActionSave()
 
 void MyGraphicsView::onActionLoad()
 {
+    QString fileName = QFileDialog::getOpenFileName(this, tr("读取地图信息"), "D:",
+                                                    tr("地图信息文件 (*.mapdat)"));
+    QFile file(fileName);
+
     //先清空当前的
     clearPoint();
     clearLine();
-    QFile file("map.dat");
-    if(!file.open(QIODevice::ReadOnly))
-    {
+    //QFile file("map.dat");
+    if(!file.open(QIODevice::ReadOnly)) {
         return;
     }
     QDataStream in(&file);
@@ -721,10 +733,11 @@ void MyGraphicsView::onSelectItem()
     QVector<QString> name;
 
     if (items.size() == 0 || items.first()->type() != MyGraphicsItem::MyItem) {
-        selectedItem = NULL;
 
         flasher->setFlash(false);
+        selectedItem = NULL;
 
+        emit tableSetSelected(-1);
         emit showSelectedPos(NULL);
         return;
     }
@@ -734,12 +747,27 @@ void MyGraphicsView::onSelectItem()
 
         //设置选中点的闪烁
         if (selectedItem->getPosition()->isBuild) {
+            flasher->setFlash(false);
             flasher->item = selectedItem;
             flasher->setFlash(true);
+            emit tableSetSelected(selectedItem->getPosition()->id);
         }
         else {
             flasher->setFlash(false);
+            emit tableSetSelected(-1);
         }
         emit showSelectedPos(p->getPosition());
+    }
+}
+
+void MyGraphicsView::onTableSelectedItemChanged(int oid, int nid)
+{
+    for (auto &p : m_all_locs_list) {
+        if (p->getPosition()->id == nid) {
+            p->setSelected(true);
+        }
+        else if (oid != -1 && p->getPosition()->id == oid) {
+            p->setSelected(false);
+        }
     }
 }

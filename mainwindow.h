@@ -57,6 +57,7 @@ public slots:
 
     void onPushBtnFindPressed(int start, int end);
     void onPushBtnClearPressed();
+    void onPrintLog(QString msg);
 
 };
 #endif // MAINWINDOW_H

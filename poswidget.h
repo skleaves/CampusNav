@@ -21,6 +21,7 @@ public:
     void showPosName(Pos * pos);
     void setEditEnable(bool flag);
     void setBtnAdd(bool checked);
+    void setBtnDel(bool flag);
 
 private:
     Ui::PosWidget *ui;

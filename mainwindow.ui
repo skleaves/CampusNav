@@ -7,17 +7,17 @@
     <x>0</x>
     <y>0</y>
     <width>1000</width>
-    <height>798</height>
+    <height>779</height>
    </rect>
   </property>
   <property name="windowTitle">
-   <string>MainWindow</string>
+   <string>SDU Navigator</string>
   </property>
   <widget class="QWidget" name="centralwidget">
    <widget class="MyGraphicsView" name="graphicsView">
     <property name="geometry">
      <rect>
-      <x>10</x>
+      <x>20</x>
       <y>140</y>
       <width>900</width>
       <height>606</height>

@@ -7,6 +7,10 @@ TableWidget::TableWidget(QWidget *parent) :
 {
     ui->setupUi(this);
 
+    this->setAttribute(Qt::WA_QuitOnClose, false);
+    this->setWindowFlags(this->windowFlags() | Qt::WindowStaysOnTopHint);
+    this->setWindowIcon(QIcon(":/img/liebiao.png"));
+
     //添加布局
     QHBoxLayout *windowLayout = new QHBoxLayout;
     windowLayout->addWidget(ui->tableView);
@@ -20,11 +24,18 @@ TableWidget::TableWidget(QWidget *parent) :
     m_model->setHeaderData(2,Qt::Horizontal, "ID");
     m_model->setRowCount(0);
     ui->tableView->setModel(m_model);
+
+    //m_selmodel = new QItemSelectionModel();
+    //ui->tableView->setSelectionModel(m_selmodel);
+    ui->tableView->setCurrentIndex(m_model->index(-1, -1));
+
     ui->tableView->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Stretch);//使第二列的内容完全显示
     ui->tableView->verticalHeader()->setDefaultAlignment(Qt::AlignCenter);
     ui->tableView->verticalHeader()->setFixedWidth(40);
     //隔行变色
     ui->tableView->setAlternatingRowColors(true);
+    //按行选择
+    ui->tableView->setSelectionBehavior(QAbstractItemView::SelectRows);
     //打开右键菜单
     ui->tableView->setContextMenuPolicy(Qt::CustomContextMenu);
     ui->tableView->horizontalHeader()->setContextMenuPolicy(Qt::CustomContextMenu);
@@ -37,9 +48,9 @@ TableWidget::TableWidget(QWidget *parent) :
     //connect(m_actionDel,&QAction::triggered,this,&MainWindow::slotDel);
     //添加删除按钮
     m_menu->addAction(m_actionDel);
-
     connect(ui->tableView->verticalHeader(), &QTableView::customContextMenuRequested, this, &TableWidget::onPopVerticalHeaderMenu);
     connect(ui->tableView->horizontalHeader(), &QTableView::customContextMenuRequested, this, &TableWidget::onPopHorizontalHeaderMenu);
+    connect(ui->tableView->selectionModel(), &QItemSelectionModel::currentRowChanged, this, &TableWidget::onSlectRow);
     connect(this->m_model, &QAbstractItemModel::dataChanged, this, &TableWidget::onNameEdited);
 }
 
@@ -121,6 +132,30 @@ void TableWidget::onPopHorizontalHeaderMenu(const QPoint &pos)
     menu->addAction(sort_up);
     menu->addAction(sort_down);
     menu->exec(QCursor::pos());
+}
+
+void TableWidget::onTableSetSelected(int id)
+{
+    qDebug() << "点击了 修改列表状态";
+    if (id == -1) ui->tableView->setCurrentIndex(m_model->index(-1, -1));
+    for (int i = 0; i < m_model->rowCount(); i ++) {
+        if (m_model->item(i, 2)->text().toInt() == id) {
+            if (ui->tableView->currentIndex() == m_model->index(i, 2)) return;
+            ui->tableView->setCurrentIndex(m_model->index(i, 2));
+            break;
+        }
+    }
+}
+
+void TableWidget::onSlectRow(const QModelIndex &current, const QModelIndex &previous)
+{
+    int row = current.row();
+    qDebug() << "选择的行数：" << row << "原行数" << previous.row();
+    if (current.row() == -1) return; //错误
+    int nid = m_model->item(row, 2)->text().toInt();
+    int oid = -1;
+    if (previous.row() != -1) oid = m_model->item(previous.row(), 2)->text().toInt();
+    emit tableSelecteItemChanged(oid, nid);
 }
 
 void TableWidget::onNameEdited(const QModelIndex &topLeft, const QModelIndex &bottomRight, const QVector<int> &roles)

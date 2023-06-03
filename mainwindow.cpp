@@ -7,6 +7,9 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
 
+    this->setWindowIcon(QIcon(":/img/main.png"));
+    this->setFixedSize(1000, 800);
+
     ui->toolBar->setIconSize(QSize(40,40));
     ui->toolBar->setStyleSheet("QToolBar {border-right: 2px;}");
     ui->toolBar->layout()->setContentsMargins(5, 5, 5, 5);	//设置周围间隔
@@ -21,8 +24,6 @@ MainWindow::MainWindow(QWidget *parent)
     pathWidget = new PathWidget();
     ui->stackedWidget->addWidget(pathWidget);
     ui->stackedWidget->setCurrentWidget(findPathWidget);
-
-
 
     QActionGroup* normalAddActions = new QActionGroup(this);
     normalAddActions->setExclusive(true);
@@ -80,9 +81,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->statusBar->addPermanentWidget(currentPos);
 
     //显示图片
-    //QImage img1("C:\\Users\\atsky\\Desktop\\test.png");
     QImage img1(":/img/map.png");
-    //ui->graphicsView->setStyleSheet("{border: 2px solid gray;}");
     ui->graphicsView->sceneCoord = sceneCoord;
     ui->graphicsView->viewCoord = viewCoord;
     ui->graphicsView->mapCoord = mapCoord;
@@ -111,6 +110,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(this->ui->graphicsView, &MyGraphicsView::getUserInput, this, &MainWindow::onGetUserInput);
     connect(this->ui->graphicsView, &MyGraphicsView::posChanged, this, &MainWindow::onPosChanged);
     connect(this->ui->graphicsView, &MyGraphicsView::showSelectedPos, this, &MainWindow::onShowSelectedPos);
+    connect(this->ui->graphicsView, &MyGraphicsView::printLog, this, &MainWindow::onPrintLog);
 
     connect(this->findPathWidget, &FindPathWidget::pushBtnFindPressed, this, &MainWindow::onPushBtnFindPressed);
     connect(this->findPathWidget, &FindPathWidget::pushBtnClearPressed, this, &MainWindow::onPushBtnClearPressed);
@@ -121,6 +121,9 @@ MainWindow::MainWindow(QWidget *parent)
     connect(this->posWidget, &PosWidget::delSelectedPos, this, &MainWindow::onDelSelectedPos);
 
     connect(this->tableWidget, &TableWidget::posNameEdited, this, &MainWindow::onPosNameEdited);
+
+    connect(this->tableWidget, &TableWidget::tableSelecteItemChanged, this->ui->graphicsView, &MyGraphicsView::onTableSelectedItemChanged);
+    connect(this->ui->graphicsView, &MyGraphicsView::tableSetSelected, this->tableWidget, &TableWidget::onTableSetSelected);
 }
 
 MainWindow::~MainWindow()
@@ -149,6 +152,8 @@ void MainWindow::onActionPath(bool checked)
     if (checked) {
         this->ui->stackedWidget->setCurrentWidget(pathWidget);
         posWidget->setBtnAdd(false);
+        pathWidget->clearText();
+        pathWidget->printMsg(BLUE_TEXT("进入添加路径模式<br>") GRAY_TEXT("单击地点或路径点以设置起点 ESC退出<br>"));
     }
 }
 
@@ -216,6 +221,8 @@ void MainWindow::onStateChanged(int state)
 void MainWindow::onGetUserInput(bool &isOK, QString &str)
 {
     bool OK = false;
+    //QInputDialog inputDia(this);
+    //inputDia.setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint);
     str = QInputDialog::getText(this, "添加地点", "请输入地点名",
                                QLineEdit::Normal, "", &OK);
     isOK = OK;
@@ -224,14 +231,18 @@ void MainWindow::onGetUserInput(bool &isOK, QString &str)
 void MainWindow::onShowSelectedPos(Pos * pos)
 {
     if (pos == NULL || !pos->isBuild) {
-        if (pos == NULL) currentPos->clear();
+        if (pos == NULL) {
+            currentPos->clear();
+            this->posWidget->setBtnDel(false);
+        }
         //else currentPos->setText(QString(pos->id));
-        else qDebug() << pos->id;
+        else this->posWidget->setBtnDel(true);
         posWidget->showPosName(pos);
         posWidget->setEditEnable(false);
         return;
     }
 
+    this->posWidget->setBtnDel(true);
     posWidget->setEditEnable(true);
     posWidget->showPosName(pos);
 
@@ -308,6 +319,9 @@ void MainWindow::onDelSelectedPos()
 {
     if (ui->graphicsView->selectedItem != NULL) {
         Pos *pos = ui->graphicsView->selectedItem->getPosition();
+
+        //先取消flashobject与该对象的绑定
+        ui->graphicsView->flasher->item = NULL;
 
         //在邻接表中删除该点
         //首先需要找到和这个点邻接的点
@@ -387,4 +401,9 @@ void MainWindow::onPushBtnFindPressed(int start, int end)
 void MainWindow::onPushBtnClearPressed()
 {
     ui->graphicsView->clearPathLine();
+}
+
+void MainWindow::onPrintLog(QString msg)
+{
+    pathWidget->printMsg(msg);
 }

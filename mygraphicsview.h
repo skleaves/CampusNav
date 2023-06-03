@@ -15,10 +15,12 @@
 #include <QLinkedList>
 #include <QStack>
 #include <QTimer>
+#include <QFileDialog>
 #include "map.h"
 #include "mygraphicsitem.h"
 #include "graphicsviewzoom.h"
 #include "flashobject.h"
+#include "pathwidget.h"
 
 class MyGraphicsView : public QGraphicsView
 {
@@ -59,7 +61,7 @@ private:
     Graphicsviewzoom* z;        //用于缩放
     MyGraphicsItem *prevItem = NULL;   //用于预览
     QGraphicsLineItem *prevLine = NULL;
-    FlashObject *flasher;
+
     QPoint viewPoint;
     QPointF scenePoint;
     QPointF m_startpos;         //鼠标开始点 同下用于移动视图
@@ -76,6 +78,7 @@ private:
     void keyPressEvent(QKeyEvent *event) Q_DECL_OVERRIDE;
 
 public:
+    FlashObject *flasher;
     Map * m_map;    //存储的图
     QLinkedList<MyGraphicsItem *> m_all_locs_list;       //所有路径点图元的链表 用于删除
     QLinkedList<QGraphicsLineItem *> m_all_edges_list;   //所有边图元的链表 用于删除
@@ -93,6 +96,8 @@ signals:
     void getUserInput(bool &isOK, QString &str);
     void showSelectedPos(Pos * pos);
 
+    void tableSetSelected(int id);
+
 public slots:
     void on_readMapData();
     void onActionNormal(bool checked);
@@ -104,6 +109,7 @@ public slots:
     void onActionClear();
     void onSelfStateChanged(int olds, int news);
     void onSelectItem();
+    void onTableSelectedItemChanged(int oid, int nid);
 };
 
 #endif // MYGRAPHICSVIEW_H

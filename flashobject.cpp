@@ -15,7 +15,7 @@ void FlashObject::setFlash(bool enable)
     }
     else {
         timer->stop();
-        item->setBrush(QBrush(Qt::blue));
+        if (item != NULL) item->setBrush(QBrush(Qt::blue));
     }
 }
 

@@ -6,30 +6,24 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>648</width>
+    <width>887</width>
     <height>129</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Form</string>
   </property>
-  <widget class="QLabel" name="label">
+  <widget class="QTextBrowser" name="textBrowser">
    <property name="geometry">
     <rect>
-     <x>40</x>
-     <y>30</y>
-     <width>141</width>
-     <height>31</height>
+     <x>20</x>
+     <y>0</y>
+     <width>811</width>
+     <height>101</height>
     </rect>
    </property>
-   <property name="font">
-    <font>
-     <family>幼圆</family>
-     <pointsize>12</pointsize>
-    </font>
-   </property>
-   <property name="text">
-    <string>点击选择起点</string>
+   <property name="focusPolicy">
+    <enum>Qt::NoFocus</enum>
    </property>
   </widget>
  </widget>

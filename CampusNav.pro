@@ -47,6 +47,8 @@ FORMS += \
     poswidget.ui \
     tablewidget.ui
 
+RC_FILE = exe_ico.rc
+
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
 else: unix:!android: target.path = /opt/$${TARGET}/bin
@@ -54,3 +56,6 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 
 RESOURCES += \
     res.qrc
+
+DISTFILES += \
+    exe_ico.rc

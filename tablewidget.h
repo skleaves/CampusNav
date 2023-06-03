@@ -7,6 +7,7 @@
 #include <QMenu>
 #include <QAction>
 #include <QStandardItemModel>
+#include <QItemSelectionModel>
 #include <QLayout>
 
 namespace Ui {
@@ -30,6 +31,7 @@ private:
     Ui::TableWidget *ui;
 
     QStandardItemModel* m_model;
+    QItemSelectionModel* m_selmodel;
 
     QTableWidgetItem *m_selectedItem;
     QMenu * m_menu;
@@ -37,12 +39,16 @@ private:
 
 signals:
     void posNameEdited(int id, QString name, QStringList otherName);
+    void tableSelecteItemChanged(int oid, int nid);
 
 public slots:
     void onPopItemMenu(const QPoint &pos);
     void onPopVerticalHeaderMenu(const QPoint &pos);
     void onPopHorizontalHeaderMenu(const QPoint &pos);
 
+    void onTableSetSelected(int id);
+
+    void onSlectRow(const QModelIndex &current, const QModelIndex &previous);
     void onNameEdited(const QModelIndex &topLeft, const QModelIndex &bottomRight, const QVector<int> &roles);
 };
 

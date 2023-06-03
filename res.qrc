@@ -12,5 +12,7 @@
         <file>img/clear.png</file>
         <file>img/path.png</file>
         <file>img/bianji.png</file>
+        <file>img/liebiao.png</file>
+        <file>img/main.png</file>
     </qresource>
 </RCC>

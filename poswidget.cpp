@@ -29,13 +29,13 @@ PosWidget::PosWidget(QWidget *parent) :
     ui->pushBtnDel->setStyleSheet("background-color: none;");
     ui->pushBtnDel->setFocusPolicy(Qt::NoFocus);
 
-    ui->pushBtnGo->setText("");
-    ui->pushBtnGo->setFlat(true);
-    ui->pushBtnGo->setIcon(QIcon(":/img/goto.png"));
-    ui->pushBtnGo->setIconSize(QSize(50, 50));
-    ui->pushBtnGo->setFixedSize(50, 50);
-    ui->pushBtnGo->setStyleSheet("background-color: none;");
-    ui->pushBtnGo->setFocusPolicy(Qt::NoFocus);
+//    ui->pushBtnGo->setText("");
+//    ui->pushBtnGo->setFlat(true);
+//    ui->pushBtnGo->setIcon(QIcon(":/img/goto.png"));
+//    ui->pushBtnGo->setIconSize(QSize(50, 50));
+//    ui->pushBtnGo->setFixedSize(50, 50);
+//    ui->pushBtnGo->setStyleSheet("background-color: none;");
+//    ui->pushBtnGo->setFocusPolicy(Qt::NoFocus);
 
     ui->pushBtnEdit->setText("");
     ui->pushBtnEdit->setFlat(true);
@@ -105,6 +105,11 @@ void PosWidget::setBtnAdd(bool checked)
 {
     if (checked) ui->pushBtnAdd->setChecked(true);
     else ui->pushBtnAdd->setChecked(false);
+}
+
+void PosWidget::setBtnDel(bool flag)
+{
+    ui->pushBtnDel->setEnabled(flag);
 }
 
 void PosWidget::onBtnAdd(bool checked)
