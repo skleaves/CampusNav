@@ -15,6 +15,7 @@
 #include "poswidget.h"
 #include "pathwidget.h"
 #include "tablewidget.h"
+#include "mypriorityqueue.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -54,6 +55,7 @@ public slots:
     void onPosNameEdited(int id, QString name, QStringList otherName);
     void onShowTableWidget();
     void onDelSelectedPos();
+    void onTableDelItem(int id);
 
     void onPushBtnFindPressed(int start, int end);
     void onPushBtnClearPressed();

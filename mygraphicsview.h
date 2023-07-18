@@ -50,7 +50,7 @@ private:
         M_DEFAULT,    //默认 浏览模式
         M_ADD_LOC,    //添加地点
         M_ADD_PATHBG, //准备添加路径
-        M_ADD_PATH,
+        M_ADD_PATH,   //添加路径点
         M_MOD_LOC     //编辑地点模式
     };
     int m_state = M_DEFAULT;    //状态标记

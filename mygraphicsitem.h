@@ -27,7 +27,6 @@ public:
 
     void setPosition(Pos *pos);
     Pos * getPosition();
-
     void doFlash();
 
     //重写绘制 去除选中的虚线框 更改为自定义样式
@@ -39,7 +38,6 @@ public:
     void mousePressEvent(QGraphicsSceneMouseEvent *event) Q_DECL_OVERRIDE;
     void mouseReleaseEvent(QGraphicsSceneMouseEvent *event) Q_DECL_OVERRIDE;
     void hoverEnterEvent(QGraphicsSceneHoverEvent * event) Q_DECL_OVERRIDE;
-    //void hoverMoveEvent(QGraphicsSceneHoverEvent * event) Q_DECL_OVERRIDE;
     void hoverLeaveEvent(QGraphicsSceneHoverEvent * event) Q_DECL_OVERRIDE;
 
 public slots:

@@ -121,6 +121,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(this->posWidget, &PosWidget::delSelectedPos, this, &MainWindow::onDelSelectedPos);
 
     connect(this->tableWidget, &TableWidget::posNameEdited, this, &MainWindow::onPosNameEdited);
+    connect(this->tableWidget, &TableWidget::tableDelItem, this, &MainWindow::onTableDelItem);
 
     connect(this->tableWidget, &TableWidget::tableSelecteItemChanged, this->ui->graphicsView, &MyGraphicsView::onTableSelectedItemChanged);
     connect(this->ui->graphicsView, &MyGraphicsView::tableSetSelected, this->tableWidget, &TableWidget::onTableSetSelected);
@@ -384,6 +385,74 @@ void MainWindow::onDelSelectedPos()
         onPosChanged();
         return;
     }
+}
+
+void MainWindow::onTableDelItem(int id)
+{
+    Pos * pos = ui->graphicsView->m_map->m_all_locs[ui->graphicsView->m_map->idToIdx[id]];
+    //先取消flashobject与该对象的绑定
+    ui->graphicsView->flasher->item = NULL;
+
+    //在邻接表中删除该点
+    //首先需要找到和这个点邻接的点
+    QLinkedList<QPairI> adjList;    //这个点的邻接表
+    for (auto t : ui->graphicsView->m_map->m_adjList) {
+        if (t.first().first == pos->id) {
+            adjList = t;
+            ui->graphicsView->m_map->m_adjList.removeOne(t);
+            break;
+        }
+    }
+    QList<int> adjPos;  //与该点邻接的所有点的id
+    for (auto it = adjList.begin() + 1; it != adjList.end(); it ++) {
+        adjPos.push_back((*it).first);
+    }
+    //然后对所有邻接的点 都需要在其邻接表中删除该点
+    for (auto pid : adjPos) {
+        for (auto it = ui->graphicsView->m_map->m_adjList.begin(); it != ui->graphicsView->m_map->m_adjList.end(); it ++) {
+            if ((*it).first().first == pid) {
+                for (auto pair : (*it)) {
+                    if (pair.first == pos->id) {
+                        it->removeOne(pair);
+                        break;
+                    }
+                }
+                break;
+            }
+        }
+    }
+
+    //在所有loc中删除
+    ui->graphicsView->m_map->m_all_locs.removeOne(pos);
+
+    ui->graphicsView->m_map->idToIdx.clear();
+    for (int i = 0; i < ui->graphicsView->m_map->m_all_locs.size(); i ++) {
+        ui->graphicsView->m_map->idToIdx.insert(ui->graphicsView->m_map->m_all_locs[i]->id, i);
+    }
+
+    //在所有edge中删除
+    for (auto it = ui->graphicsView->m_map->m_all_edges.begin(); it != ui->graphicsView->m_map->m_all_edges.end();) {
+        if ((*it)->start_pos == pos->id || (*it)->end_pos == pos->id) ui->graphicsView->m_map->m_all_edges.erase(it);
+        else it ++;
+    }
+
+    ui->graphicsView->m_all_locs_list.removeOne(ui->graphicsView->selectedItem);
+
+
+    //删除边图元
+    auto items = ui->graphicsView->selectedItem->collidingItems();
+    for (auto item : items) {
+        if (item->type() == 6) {
+            ui->graphicsView->m_all_edges_list.removeOne(static_cast<QGraphicsLineItem*>(item));
+            delete item;
+        }
+    }
+
+    delete ui->graphicsView->selectedItem;
+
+    //需要更新到下拉列表
+    onPosChanged();
+    return;
 }
 
 void MainWindow::onPushBtnFindPressed(int start, int end)

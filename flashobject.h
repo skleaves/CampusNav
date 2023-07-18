@@ -9,7 +9,6 @@ class FlashObject : public QObject
 {
     Q_OBJECT
 public:
-    //explicit FlashObject(QObject *parent = nullptr);
     FlashObject(MyGraphicsItem *i);
 
     MyGraphicsItem* item;

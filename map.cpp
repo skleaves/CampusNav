@@ -9,47 +9,43 @@ Map::Map()
 
 void Map::dijkstra(int startID, int n)
 {
-    qDebug() << startID << n;
-    int start, end;
-    QVector<double> dist(n, 1e9);   //距离
-    QVector<int> path(n, -1);       //路径
-    QVector<QPairI> realDist;
-    QVector<QPair<int, int>> realPath;
+    //qDebug() << startID << n;
+    int start;
+    QVector<double> dist(n, 1e9); //距离
+    QVector<int> path(n, -1); //路径
+    QVector<QPairI> realDist; //将ID与距离关联
+    QVector<QPair<int, int>> realPath; //将ID与路径关联
+    MyPriorityQueue q;
 
     bool st[n];
     for (int i = 0; i < n; i ++) st[i] = false;
 
     start = idToIdx[startID];
-    //end = idToIdx[endID];
 
     dist[start] = 0;
+    q.push(QPairI(start, 0)); //压入起点
 
-    for (int i = 0; i < n; i ++)
-    {
-        int temp = -1;
-        //找到当前未被确定的点中距离最小的点
-        for (int j = 0; j < n; j ++ ) {
-            if (!st[j] && (temp == -1 || dist[j] < dist[temp])) temp = j;
-        }
-
-        //for (int k = 0; k < n; k ++) qDebug() << k << st[k];
-        //qDebug() << i << temp;
-
-        st[temp] = true;
+    while (q.size()) {
+        auto t = q.top();
+        q.pop();
+        int idx = t.first;
+        double dis = t.second;
+        if (st[idx]) continue;
+        st[idx] = true;
         //尝试用该点更新其他点的距离
-        int tempID = m_all_locs[temp]->id;
+        int tID = m_all_locs[idx]->id;
         for (auto lk : m_adjList) {
-            if (lk.first().first == tempID) {
+            if (lk.first().first == tID) {
                 for (auto p : lk) {
-                    if (dist[temp] + p.second < dist[idToIdx[p.first]]) {
-                        dist[idToIdx[p.first]] = dist[temp] + p.second;
-                        path[idToIdx[p.first]] = temp;
+                    if (dis + p.second < dist[idToIdx[p.first]]) {
+                        dist[idToIdx[p.first]] = dis + p.second;
+                        path[idToIdx[p.first]] = idx;
+                        q.push(QPairI(idToIdx[p.first], dist[idToIdx[p.first]]));
                     }
                 }
                 break;
             }
         }
-        //return true;
     }
 
     for (int i = 0; i < n; i ++) {

@@ -7,6 +7,7 @@
 #include <QLinkedList>
 #include <QDebug>
 #include <QMap>
+#include "mypriorityqueue.h"
 
 typedef QPair<int, double> QPairI;
 

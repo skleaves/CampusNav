@@ -25,10 +25,9 @@ TableWidget::TableWidget(QWidget *parent) :
     m_model->setRowCount(0);
     ui->tableView->setModel(m_model);
 
-    //m_selmodel = new QItemSelectionModel();
-    //ui->tableView->setSelectionModel(m_selmodel);
+    //允许点击排序
+    ui->tableView->setSortingEnabled(true);
     ui->tableView->setCurrentIndex(m_model->index(-1, -1));
-
     ui->tableView->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Stretch);//使第二列的内容完全显示
     ui->tableView->verticalHeader()->setDefaultAlignment(Qt::AlignCenter);
     ui->tableView->verticalHeader()->setFixedWidth(40);
@@ -39,16 +38,16 @@ TableWidget::TableWidget(QWidget *parent) :
     //打开右键菜单
     ui->tableView->setContextMenuPolicy(Qt::CustomContextMenu);
     ui->tableView->horizontalHeader()->setContextMenuPolicy(Qt::CustomContextMenu);
-    ui->tableView->verticalHeader()->setContextMenuPolicy(Qt::CustomContextMenu);
+    //ui->tableView->verticalHeader()->setContextMenuPolicy(Qt::CustomContextMenu);
 
     //添加菜单
     m_menu = new QMenu();
     //删除按钮
     m_actionDel = new QAction("删除地点",m_menu);
-    //connect(m_actionDel,&QAction::triggered,this,&MainWindow::slotDel);
+    connect(m_actionDel, &QAction::triggered, this, &TableWidget::onActionDel);
     //添加删除按钮
     m_menu->addAction(m_actionDel);
-    connect(ui->tableView->verticalHeader(), &QTableView::customContextMenuRequested, this, &TableWidget::onPopVerticalHeaderMenu);
+    connect(ui->tableView, &QTableView::customContextMenuRequested, this, &TableWidget::onPopVerticalHeaderMenu);
     connect(ui->tableView->horizontalHeader(), &QTableView::customContextMenuRequested, this, &TableWidget::onPopHorizontalHeaderMenu);
     connect(ui->tableView->selectionModel(), &QItemSelectionModel::currentRowChanged, this, &TableWidget::onSlectRow);
     connect(this->m_model, &QAbstractItemModel::dataChanged, this, &TableWidget::onNameEdited);
@@ -83,7 +82,9 @@ void TableWidget::loadTableView()
             }
             else list << new QStandardItem("");
             //设置ID项
-            QStandardItem * IDItem = new QStandardItem(QString::number(location->id, 10));
+            QStandardItem * IDItem = new QStandardItem();
+            int id = location->id;
+            IDItem->setData(QVariant(id), Qt::EditRole);
             IDItem->setSelectable(false);
             IDItem->setEditable(false);
             IDItem->setForeground(QBrush(QColor(Qt::darkGray)));
@@ -136,14 +137,25 @@ void TableWidget::onPopHorizontalHeaderMenu(const QPoint &pos)
 
 void TableWidget::onTableSetSelected(int id)
 {
-    qDebug() << "点击了 修改列表状态";
+    qDebug() << "地图上选中" << id << "状态改变 修改列表状态";
     if (id == -1) ui->tableView->setCurrentIndex(m_model->index(-1, -1));
     for (int i = 0; i < m_model->rowCount(); i ++) {
-        if (m_model->item(i, 2)->text().toInt() == id) {
-            if (ui->tableView->currentIndex() == m_model->index(i, 2)) return;
+        //if (m_model->item(i, 2)->text().toInt() == id) {
+        if (m_model->item(i, 2)->data(Qt::EditRole).toInt() == id) {
+            if (ui->tableView->currentIndex().row() == i) return;
             ui->tableView->setCurrentIndex(m_model->index(i, 2));
             break;
         }
+    }
+}
+
+void TableWidget::onActionDel()
+{
+    int row = ui->tableView->currentIndex().row();
+    if (row != -1) {
+        int id = m_model->item(row, 2)->data(Qt::EditRole).toInt();
+        emit tableDelItem(id);
+        m_model->removeRow(row);
     }
 }
 
@@ -151,10 +163,11 @@ void TableWidget::onSlectRow(const QModelIndex &current, const QModelIndex &prev
 {
     int row = current.row();
     qDebug() << "选择的行数：" << row << "原行数" << previous.row();
-    if (current.row() == -1) return; //错误
-    int nid = m_model->item(row, 2)->text().toInt();
+    int nid = -1;
+    if (current.row() != -1) nid = m_model->item(row, 2)->data(Qt::EditRole).toInt();
     int oid = -1;
-    if (previous.row() != -1) oid = m_model->item(previous.row(), 2)->text().toInt();
+    if (previous.row() != -1) oid = m_model->item(previous.row(), 2)->data(Qt::EditRole).toInt();
+    //qDebug() << nid << oid;
     emit tableSelecteItemChanged(oid, nid);
 }
 
@@ -165,7 +178,7 @@ void TableWidget::onNameEdited(const QModelIndex &topLeft, const QModelIndex &bo
         QStandardItem * item = m_model->itemFromIndex(topLeft);
         //获取对应行
         int row = item->row();
-        int id = m_model->item(row, 2)->text().toInt();
+        int id = m_model->item(row, 2)->data(Qt::EditRole).toInt();
         QString name = m_model->item(row, 0)->text();
         QString oName = m_model->item(row, 1)->text();
         QStringList otherName;

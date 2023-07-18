@@ -35,11 +35,12 @@ private:
 
     QTableWidgetItem *m_selectedItem;
     QMenu * m_menu;
-    QAction *m_actionDel, *m_actionEmpty;
+    QAction *m_actionDel;
 
 signals:
     void posNameEdited(int id, QString name, QStringList otherName);
     void tableSelecteItemChanged(int oid, int nid);
+    void tableDelItem(int id);
 
 public slots:
     void onPopItemMenu(const QPoint &pos);
@@ -47,6 +48,7 @@ public slots:
     void onPopHorizontalHeaderMenu(const QPoint &pos);
 
     void onTableSetSelected(int id);
+    void onActionDel();
 
     void onSlectRow(const QModelIndex &current, const QModelIndex &previous);
     void onNameEdited(const QModelIndex &topLeft, const QModelIndex &bottomRight, const QVector<int> &roles);

@@ -24,6 +24,7 @@ SOURCES += \
     map.cpp \
     mygraphicsitem.cpp \
     mygraphicsview.cpp \
+    mypriorityqueue.cpp \
     pathwidget.cpp \
     poswidget.cpp \
     tablewidget.cpp
@@ -36,6 +37,7 @@ HEADERS += \
     map.h \
     mygraphicsitem.h \
     mygraphicsview.h \
+    mypriorityqueue.h \
     pathwidget.h \
     poswidget.h \
     tablewidget.h

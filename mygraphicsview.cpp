@@ -589,7 +589,7 @@ void MyGraphicsView::onActionAddPath(bool checked)
 
 void MyGraphicsView::onActionSave()
 {
-    QString fileName = QFileDialog::getOpenFileName(this, tr("存储地图信息"), "D:",
+    QString fileName = QFileDialog::getSaveFileName(this, tr("存储地图信息"), "D:",
                                                     tr("地图信息文件 (*.mapdat)"));
     QFile file(fileName);
     if(!file.open(QIODevice::WriteOnly)) {
@@ -617,13 +617,14 @@ void MyGraphicsView::onActionLoad()
                                                     tr("地图信息文件 (*.mapdat)"));
     QFile file(fileName);
 
-    //先清空当前的
-    clearPoint();
-    clearLine();
     //QFile file("map.dat");
     if(!file.open(QIODevice::ReadOnly)) {
         return;
     }
+
+    //先清空当前的
+    clearPoint();
+    clearLine();
     QDataStream in(&file);
     in.setVersion(QDataStream::Qt_4_3);
 
@@ -762,12 +763,31 @@ void MyGraphicsView::onSelectItem()
 
 void MyGraphicsView::onTableSelectedItemChanged(int oid, int nid)
 {
-    for (auto &p : m_all_locs_list) {
-        if (p->getPosition()->id == nid) {
-            p->setSelected(true);
-        }
-        else if (oid != -1 && p->getPosition()->id == oid) {
+    qDebug() << "表中选中的新点" << nid;
+    //说明表中没有选中任何地点
+    if (nid == -1) {
+        for (auto &p : m_all_locs_list) {
             p->setSelected(false);
         }
+        return;
     }
+    for (auto &p : m_all_locs_list) {
+        if (oid != -1 && p->getPosition()->id == oid) {
+
+            if (p->isSelected()) {
+                qDebug() << "取消地图中" << oid << "选中";
+                p->setSelected(false);
+            }
+        }
+    }
+    for (auto &p : m_all_locs_list) {
+        if (p->getPosition()->id == nid) {
+
+            if (!p->isSelected()) {
+                qDebug() << "设置地图中" << nid << "选中";
+                p->setSelected(true);
+            }
+        }
+    }
+
 }

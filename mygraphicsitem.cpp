@@ -3,7 +3,6 @@
 MyGraphicsItem::MyGraphicsItem()
 {
 
-
 }
 
 MyGraphicsItem::~MyGraphicsItem()
@@ -16,7 +15,6 @@ MyGraphicsItem::MyGraphicsItem(qreal x, qreal y, qreal width, qreal height, QGra
     : QGraphicsEllipseItem(x, y, width, height, parent)
 {
 
-
 }
 
 void MyGraphicsItem::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget) {
@@ -27,7 +25,6 @@ void MyGraphicsItem::paint(QPainter *painter, const QStyleOptionGraphicsItem *op
     if (option->state & QStyle::State_Selected) {
        op.state = QStyle::State_None;
     }
-
     QGraphicsEllipseItem::paint(painter, &op, widget);
 
     //绘制选中时样式
@@ -72,13 +69,13 @@ Pos * MyGraphicsItem::getPosition()
 void MyGraphicsItem::doFlash()
 {
     if (this->brush().color() == Qt::blue){
-        qDebug() << "设置为红色";
+        //qDebug() << "设置为红色";
         this->setBrush(QBrush(Qt::red));
         //this->brush().setColor(Qt::red);
         //this->update();
     }
     else {
-        qDebug() << "设置为蓝色";
+        //qDebug() << "设置为蓝色";
         this->setBrush(QBrush(Qt::blue));
         //this->update();
     }
